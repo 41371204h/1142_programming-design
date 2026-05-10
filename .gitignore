@@ -1,0 +1,9 @@
+# 忽略編譯產物
+build/
+*.exe
+*.out
+*.o
+*.obj
+
+# 忽略編輯器設定
+.vscode/

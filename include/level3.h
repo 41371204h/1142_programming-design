@@ -1,4 +1,4 @@
-#ifdef LEVEL3_H
+#ifndef LEVEL3_H
 #define LEVEL3_H
 
 #include "game_shared.h"

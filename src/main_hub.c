@@ -1,17 +1,12 @@
 #include "raylib.h"
 #include "game_shared.h"
 #include "level3.h"
-// #include "level1_2.h" ///
-#include <string.h> /// for testing lv3
+#include "level1.h"
+// #include "level2.h" 
+#include <string.h> 
 
 #define SCREEN_HEIGHT 960
 #define SCREEN_WIDTH 1280
-
-// Declare the variables for visual design
-/* static Texture2D texHubBg;
-static Texture2D texTermOffline;
-static Texture2D texTermReady;
-static Texture2D texTermCleared; */
 
 // Homw page terminal settings
 static Rectangle termLevel1 = { 150, 450, 250, 180 }; // terminal for Level 1 (left)
@@ -21,51 +16,83 @@ static Rectangle termLevel3 = { 880, 450, 250, 180 }; // terminal for Level 3 (m
 // Declare the functions only used in home page
 void UpdateHub(GameState *state);
 void DrawHub(GameState *state);
+void DrawGlobalInventory(const GameState *state); /// --- 全域物品欄繪製宣告 ---
+
+/// --- 跨關卡共用的 AddItem 實作 ---
+void AddItem(GameState *state, const char *itemName) {
+    if (state->inventory.count < MAX_ITEMS) {
+        strcpy(state->inventory.items[state->inventory.count], itemName);
+        state->inventory.count++;
+    }
+}
 
 int main(void) {
     // 1. Initializing the game window (res: 1280x960)
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Puzzle Game"); ///
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Puzzle Game"); 
     SetTargetFPS(60);
 
     // 2. Initializing the game's core state 
     GameState state = {0};
     state.currentScreen = SCREEN_HUB; // the game starts at home page
     
-    /// to test the logic of unlocking levels, modify the flag to true
-    state.isLevel1Cleared = false; 
+    state.isLevel1Cleared = true; ///
     state.isLevel2Cleared = false;
+
+    // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)
+    state.playerSprite = LoadTexture("assets/character.png"); 
+
+    /// --- 遊戲啟動時，先初始化第一關的變數 ---
+    InitLevel1();
 
     // 3. Game main loop
     while (!WindowShouldClose()) {
-        
+        // Cannot open inventory in main hub
+        if (state.currentScreen == SCREEN_HUB || state.currentScreen == SCREEN_ENDING) {
+            state.inventory.opened = false;
+        }
+
+        // Inventory can only be opened in Lv1, 2, and 3
+        if (IsKeyPressed(KEY_C)) {
+            if (state.currentScreen == SCREEN_LEVEL1 || 
+                state.currentScreen == SCREEN_LEVEL2 ||
+                state.currentScreen == SCREEN_LEVEL3){
+                
+                    state.inventory.opened = !state.inventory.opened;
+                }
+        }
+
         // --- A. 邏輯更新層 (Update) ---
+        if (state.inventory.opened) {
+            /// --- 物品欄開啟時，攔截上下鍵操作 ---
+            if (IsKeyPressed(KEY_UP) && state.inventory.selected > 0) {
+                state.inventory.selected--;
+            }
+            if (IsKeyPressed(KEY_DOWN) && state.inventory.selected < state.inventory.count - 1) {
+                state.inventory.selected++;
+            }
+        }
+
         switch (state.currentScreen) {
             case SCREEN_HUB:
                 UpdateHub(&state);
                 break;
             case SCREEN_LEVEL1:
-                // UpdateLevel1(&state); // 等隊友完成後串接 ///
-                // 暫時用按 Enter 鍵假裝過關回到主畫面
-                if (IsKeyPressed(KEY_ENTER)) {
-                    state.isLevel1Cleared = true;
-                    strcpy(state.secretSequence, "URLD"); /// for testing lv3
-                    state.currentScreen = SCREEN_HUB;
-                }
+                /// --- 串接第一關邏輯 ---
+                UpdateLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
-                // UpdateLevel2(&state); // 等隊友完成後串接 ///
                 if (IsKeyPressed(KEY_ENTER)) {
                     state.isLevel2Cleared = true;
                     state.currentScreen = SCREEN_HUB;
                 }
                 break;
             case SCREEN_LEVEL3:
-                UpdateLevel3(&state); // 執行你已經寫好的第三關
+                UpdateLevel3(&state); // 執行第三關
                 break;
             case SCREEN_ENDING:
-                if (IsKeyPressed(KEY_SPACE)) state.currentScreen = SCREEN_HUB; // 結局看完按空白鍵重開
+                if (IsKeyPressed(KEY_SPACE)) state.currentScreen = SCREEN_HUB; 
                 break;
-        }
+            }
 
         // --- B. 畫面繪製層 (Draw) ---
         BeginDrawing();
@@ -76,15 +103,16 @@ int main(void) {
                 DrawHub(&state);
                 break;
             case SCREEN_LEVEL1:
-                DrawText("--- Level 1 Communications Control Hub---", 400, 400, 30, LIGHTGRAY); ///
-                DrawText("[Under developement] Press ENTER to pretend clearing lv1 and repair communication", 350, 500, 20, YELLOW);
+                // 將 &state 傳入第一關的繪製函式中
+                DrawLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
-                DrawText("--- Level 2 Maintenance Hub---", 400, 400, 30, LIGHTGRAY); ///
-                DrawText("[Under developement] Press ENTER to pretend clearing lv2 and repair the maintenance system", 320, 500, 20, YELLOW);
+                DrawText("--- Level 2 Maintenance Hub---", 400, 400, 30, LIGHTGRAY); 
+                DrawText("[Under developement] Press ENTER to pretend clearing lv2", 320, 500, 20, YELLOW);
                 break;
             case SCREEN_LEVEL3:
-                DrawLevel3(); // 執行你寫好的第三關畫面
+                // 將 &state 傳入第三關的繪製函式中
+                DrawLevel3(&state); 
                 break;
             case SCREEN_ENDING:
                 DrawText("Congratulations. You have completed the mission.\nThe core was repaired safely and the escape pod has been launched.", 300, 400, 35, GREEN);
@@ -92,8 +120,16 @@ int main(void) {
                 break;
         }
 
+        /// --- 永遠疊加在最上層的全域物品欄繪製 ---
+        if (state.inventory.opened) {
+            DrawGlobalInventory(&state);
+        }
+
         EndDrawing();
     }
+
+    // 遊戲結束關閉前，釋放顯示卡中的玩家貼圖記憶體
+    UnloadTexture(state.playerSprite);
 
     // 4. 清理並關閉
     CloseWindow();
@@ -104,25 +140,23 @@ int main(void) {
 // 主畫面 HUB 的邏輯更新
 // --------------------------------------------------------
 void UpdateHub(GameState *state) {
-    // 獲取目前滑鼠在視窗中的 X, Y 座標
+
     Vector2 mousePos = GetMousePosition();
 
-    // 只有在滑鼠按下左鍵時，才去檢查碰到了哪台電腦
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         
-        // 檢查第一關按鈕 (永遠開放)
         if (CheckCollisionPointRec(mousePos, termLevel1)) {
+            /// --- 確保每次點進第一關都是全新的狀態 ---
+            InitLevel1(); 
             state->currentScreen = SCREEN_LEVEL1;
         }
         
-        // 檢查第二關按鈕 (必須先過第一關)
         if (CheckCollisionPointRec(mousePos, termLevel2)) {
             if (state->isLevel1Cleared) {
                 state->currentScreen = SCREEN_LEVEL2;
             }
         }
         
-        // 檢查第三關按鈕 (必須先過第二關)
         if (CheckCollisionPointRec(mousePos, termLevel3)) {
             if (state->isLevel2Cleared) {
                 state->currentScreen = SCREEN_LEVEL3;
@@ -132,7 +166,7 @@ void UpdateHub(GameState *state) {
 }
 
 // --------------------------------------------------------
-// 主畫面 HUB 的畫面繪製
+// 主畫面 HUB 的畫面繪製 (保留你的全英文介面與方塊設計)
 // --------------------------------------------------------
 void DrawHub(GameState *state) {
     DrawText("Main Hub", 450, 150, 40, WHITE);
@@ -144,38 +178,38 @@ void DrawHub(GameState *state) {
     bool hover1 = CheckCollisionPointRec(mousePos, termLevel1);
     Color color1 = state->isLevel1Cleared ? GREEN : (hover1 ? SKYBLUE : BLUE);
     DrawRectangleRec(termLevel1, color1);
-    DrawRectangleLinesEx(termLevel1, 3, WHITE); /// symbolizing lv1 terminal
-    DrawText("1. Communications Section", termLevel1.x + 50, termLevel1.y + 50, 24, WHITE);
-    DrawText(state->isLevel1Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel1.x + 60, termLevel1.y + 110, 20, state->isLevel1Cleared ? LIME : YELLOW);
+    DrawRectangleLinesEx(termLevel1, 3, WHITE); 
+    DrawText("1. Communications Section", termLevel1.x + 20, termLevel1.y + 50, 20, WHITE);
+    DrawText(state->isLevel1Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel1.x + 40, termLevel1.y + 110, 20, state->isLevel1Cleared ? LIME : YELLOW);
 
     // ---- 繪製第二台終端機 (維修) ----
     bool hover2 = CheckCollisionPointRec(mousePos, termLevel2);
     Color color2;
-    if (!state->isLevel1Cleared) color2 = DARKGRAY; // 未解鎖
+    if (!state->isLevel1Cleared) color2 = DARKGRAY; 
     else color2 = state->isLevel2Cleared ? GREEN : (hover2 ? SKYBLUE : BLUE);
     
     DrawRectangleRec(termLevel2, color2);
     DrawRectangleLinesEx(termLevel2, 3, WHITE);
-    DrawText("2. Maintenance Section", termLevel2.x + 50, termLevel2.y + 50, 24, state->isLevel1Cleared ? WHITE : GRAY);
+    DrawText("2. Maintenance Section", termLevel2.x + 20, termLevel2.y + 50, 20, state->isLevel1Cleared ? WHITE : GRAY);
     if (!state->isLevel1Cleared) {
-        DrawText("[ System offline ]", termLevel2.x + 60, termLevel2.y + 110, 20, RED);
+        DrawText("[ System offline ]", termLevel2.x + 40, termLevel2.y + 110, 20, RED);
     } else {
-        DrawText(state->isLevel2Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel2.x + 60, termLevel2.y + 110, 20, state->isLevel2Cleared ? LIME : YELLOW);
+        DrawText(state->isLevel2Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel2.x + 40, termLevel2.y + 110, 20, state->isLevel2Cleared ? LIME : YELLOW);
     }
 
     // ---- 繪製第三台終端機 (動力核心) ----
     bool hover3 = CheckCollisionPointRec(mousePos, termLevel3);
     Color color3;
-    if (!state->isLevel2Cleared) color3 = DARKGRAY; // 未解鎖
+    if (!state->isLevel2Cleared) color3 = DARKGRAY; 
     else color3 = state->isLevel3Cleared ? GREEN : (hover3 ? SKYBLUE : BLUE);
 
     DrawRectangleRec(termLevel3, color3);
     DrawRectangleLinesEx(termLevel3, 3, WHITE);
-    DrawText("3. Power Section", termLevel3.x + 50, termLevel3.y + 50, 24, state->isLevel2Cleared ? WHITE : GRAY);
+    DrawText("3. Power Section", termLevel3.x + 20, termLevel3.y + 50, 20, state->isLevel2Cleared ? WHITE : GRAY);
     if (!state->isLevel2Cleared) {
-        DrawText("[ Permission denied ]", termLevel3.x + 60, termLevel3.y + 110, 20, RED);
+        DrawText("[ Permission denied ]", termLevel3.x + 40, termLevel3.y + 110, 20, RED);
     } else {
-        DrawText(state->isLevel3Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel3.x + 60, termLevel3.y + 110, 20, state->isLevel3Cleared ? LIME : YELLOW);
+        DrawText(state->isLevel3Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel3.x + 40, termLevel3.y + 110, 20, state->isLevel3Cleared ? LIME : YELLOW);
     }
 
     // ---- 全通關結局條件 ----
@@ -187,4 +221,28 @@ void DrawHub(GameState *state) {
             state->currentScreen = SCREEN_ENDING;
         }
     }
+}
+
+/// --- 全域物品欄介面繪製 ---
+void DrawGlobalInventory(const GameState *state) {
+    DrawRectangle(140, 700, 1000, 220, Fade(DARKGRAY, 0.9f));
+    DrawRectangleLines(140, 700, 1000, 220, WHITE);
+    DrawText("--- INVENTORY ---", 170, 715, 22, LIGHTGRAY);
+
+    if (state->inventory.count == 0) {
+        DrawText("Empty...", 520, 800, 24, GRAY);
+    } else {
+        for (int i = 0; i < state->inventory.count; i++) {
+            Color color = (i == state->inventory.selected) ? YELLOW : WHITE;
+            int currentY = 755 + i * 35;
+            
+            if (i == state->inventory.selected) {
+                DrawText("> ", 200, currentY, 25, YELLOW);
+                DrawText(state->inventory.items[i], 230, currentY, 25, YELLOW);
+            } else {
+                DrawText(state->inventory.items[i], 230, currentY, 25, WHITE);
+            }
+        }
+    }
+    DrawText("[ Press C to Close ]", 920, 880, 18, GRAY);
 }

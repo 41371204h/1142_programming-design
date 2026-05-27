@@ -3,22 +3,41 @@
 #define GAME_SHARED_H
 
 #include "raylib.h"
-#include <stdbool.h>
 
-typedef enum { 
-    SCREEN_HUB = 0, // The hub screen where players can choose levels
-    SCREEN_LEVEL1, // The first level of the game
-    SCREEN_LEVEL2, // The second level of the game
-    SCREEN_LEVEL3, // The third level of the game
-    SCREEN_ENDING  // The ending screen after completing all levels
+#define MAX_ITEMS 10
+
+// 遊戲場景列舉
+typedef enum {
+    SCREEN_HUB,
+    SCREEN_LEVEL1,
+    SCREEN_LEVEL2,
+    SCREEN_LEVEL3,
+    SCREEN_ENDING
 } GameScreen;
 
+// 物品欄
+typedef struct {
+    char items[MAX_ITEMS][100];
+    int count;
+    bool opened;
+    int selected;
+} Inventory;
+
+// Globally shared game state
 typedef struct {
     GameScreen currentScreen;
-    bool isLevel1Cleared; // Indicates if Level 1 has been cleared
-    bool isLevel2Cleared; // Indicates if Level 2 has been cleared
-    bool isLevel3Cleared; // Indicates if Level 3 has been cleared
-    char secretSequence[5]; // Stores the secret sequence for unlocking Level 3
+    bool isLevel1Cleared;
+    bool isLevel2Cleared;
+    bool isLevel3Cleared;
+    char secretSequence[5];
+    
+    // Globally shared inventory variable
+    Inventory inventory; 
+    // Globally shared variable that store the apperence of the character
+    Texture2D playerSprite;
 } GameState;
 
-#endif
+// add item to inventory
+void AddItem(GameState *state, const char *itemName);
+
+#endif // GAME_SHARED_H

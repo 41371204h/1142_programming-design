@@ -16,7 +16,7 @@ typedef enum {
 } L3State;
 
 // 迷宮初始模板 (每次重置都會拷貝這份)
-// 1=wall, 0=path, 2=tool(North East), 3=Core device(center), 4=starting point
+// 1=wall, 0=path, 2=handle(North East), 3=Core device(center), 4=starting point
 const int defaultMaze[MAZE_ROWS][MAZE_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1},
     {1, 0, 0, 0, 0, 0, 2, 1},
@@ -33,29 +33,41 @@ static L3State currentState = L3_STORY;
 static int maze[MAZE_ROWS][MAZE_COLS];
 static int playerX = 1;      
 static int playerY = 6;      // 讓玩家出生在左下角
-static float timeLeft = 5.0f; ///
+static float timeLeft = 60.0f; ///
 static bool hasHandle = false; 
 static bool showLockUI = false; 
 static char inputBuffer[5] = ""; 
 static int inputIndex = 0;
 
-// 👇 新增：紀錄在失敗畫面停留了多久
+// 紀錄在失敗畫面停留了多久
 static float failedTimer = 0.0f; 
 
 // --- 重置關卡的專屬函數 ---
-static void ResetLevel3(void) {
+static void ResetLevel3(GameState *state) {
     currentState = L3_STORY; 
     playerX = 1;
     playerY = 6;
-    timeLeft = 5.0f; ///
+    timeLeft = 60.0f; ///
     hasHandle = false;
     showLockUI = false;
     inputIndex = 0;
     memset(inputBuffer, 0, sizeof(inputBuffer));
     
-    // 👇 新增：每次重置關卡時，也要把失敗計時器歸零
+    // 每次重置關卡時，也要把失敗計時器歸零
     failedTimer = 0.0f; 
     
+    for (int i = 0; i < state->inventory.count; i++) {
+        if (strcmp(state->inventory.items[i], "Handle") == 0) {
+            // 標準的 C 語言陣列刪除：將被刪除道具後面的所有物品全部往前移一格
+            for (int j = i; j < state->inventory.count - 1; j++) {
+                strcpy(state->inventory.items[j], state->inventory.items[j + 1]);
+            }
+            state->inventory.count--;      // 物品總數量減 1
+            state->inventory.selected = 0; // 重置物品欄的游標，防止指到空白處
+            break; // 找到並刪除後即可跳出迴圈
+        }
+    }
+
     for(int y = 0; y < MAZE_ROWS; y++) {
         for(int x = 0; x < MAZE_COLS; x++) {
             maze[y][x] = defaultMaze[y][x];
@@ -67,7 +79,7 @@ void UpdateLevel3(GameState *state) {
     // 第一次進入關卡時，確保地圖已經載入
     static bool isInitialized = false;
     if (!isInitialized) {
-        ResetLevel3();
+        ResetLevel3(state);
         isInitialized = true;
     }
 
@@ -86,10 +98,10 @@ void UpdateLevel3(GameState *state) {
             // 2. 經過 10 秒後，才進入「第二階段」並允許玩家按鍵
             if (failedTimer > 10.0f) {
                 if (IsKeyPressed(KEY_SPACE)) {
-                    ResetLevel3();
+                    ResetLevel3(state);
                 } else if (IsKeyPressed(KEY_ESCAPE)) {
-                    ResetLevel3();
-                    state->currentScreen = SCREEN_HUB; 
+                    ResetLevel3(state);
+                    state->currentScreen = SCREEN_HUB;
                 }
             }
             break;
@@ -99,9 +111,11 @@ void UpdateLevel3(GameState *state) {
             if (timeLeft <= 0) {
                 timeLeft = 0;
                 currentState = L3_FAILED; 
-                failedTimer = 0.0f; // 👇 確保剛進入失敗狀態時，計時器是 0
+                failedTimer = 0.0f; // 確保剛進入失敗狀態時，計時器是 0
                 break;
             }
+            // make sure that the timer is still counting down when the inventory is opened
+            if (state->inventory.opened) return;
 
             // 2. 密碼輸入邏輯
             if (showLockUI) {
@@ -116,7 +130,7 @@ void UpdateLevel3(GameState *state) {
                         // 密碼正確！過關
                         state->isLevel3Cleared = true;
                         state->currentScreen = SCREEN_HUB; // 回到主畫面
-                        ResetLevel3(); // 為下一次遊玩重置
+                        ResetLevel3(state); // 為下一次遊玩重置
                     } else {
                         // 密碼錯誤，清空重打 (但不中斷遊戲與時間)
                         inputIndex = 0;
@@ -147,6 +161,7 @@ void UpdateLevel3(GameState *state) {
                     if (maze[playerY][playerX] == 2) {
                         hasHandle = true;
                         maze[playerY][playerX] = 0; // 拿走後變空地
+                        AddItem(state, "Handle"); // put handle into the inventory
                     }
                     
                     // 檢查核心裝置 (3)
@@ -158,7 +173,7 @@ void UpdateLevel3(GameState *state) {
             break;
     }
 }
-void DrawLevel3(void) {
+void DrawLevel3(const GameState *state) {
     // 如果是失敗狀態，畫出兩階段的黑屏
     if (currentState == L3_FAILED) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
@@ -191,9 +206,9 @@ void DrawLevel3(void) {
             if (maze[y][x] == 1) { // wall
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, BLACK);
                 DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
-            } else if (maze[y][x] == 2) { // tool
+            } else if (maze[y][x] == 2) { // handle
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, YELLOW);   
-                DrawText("Tool", drawX + 13, drawY + 27, 20, BLACK); // X for horizontal, Y for vertical
+                DrawText("Handle", drawX + 13, drawY + 27, 20, BLACK); // X for horizontal, Y for vertical
                 DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
             } else if (maze[y][x] == 3) { // core device
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, RED);      
@@ -210,14 +225,14 @@ void DrawLevel3(void) {
     }
 
     // 繪製玩家
-    DrawRectangle(offsetX + playerX * TILE_SIZE + 15, 
-                  offsetY + playerY * TILE_SIZE + 15, 
-                  TILE_SIZE - 30, TILE_SIZE - 30, DARKGRAY);
+    Rectangle sourceRec = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
+    Rectangle destRec = { offsetX + playerX * TILE_SIZE, offsetY + playerY * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+    DrawTexturePro(state->playerSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
 
     // UI 資訊
     DrawText(TextFormat("Remaining Oxygen: %.1f s", timeLeft), 20, 20, 30, (timeLeft < 15) ? RED : WHITE);
-    if (hasHandle) DrawText("Staus: Tool founded, please go to the Core Device.", 20, 60, 20, GREEN);
-    else DrawText("Status: Please search for the tool in the North East corner.", 20, 60, 25, GRAY);
+    if (hasHandle) DrawText("Staus: Handle founded, please go to the Core Device.", 20, 60, 20, GREEN);
+    else DrawText("Hint: Please search for the handle in the North East corner.", 20, 60, 25, GRAY);
 
     // --- 繪製密碼輸入介面 ---
     if (showLockUI) {

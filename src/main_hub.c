@@ -35,7 +35,7 @@ int main(void) {
     GameState state = {0};
     state.currentScreen = SCREEN_HUB; // the game starts at home page
     
-    state.isLevel1Cleared = true; ///
+    state.isLevel1Cleared = false; ///
     state.isLevel2Cleared = false;
 
     // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)

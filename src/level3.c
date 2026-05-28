@@ -4,7 +4,7 @@
 #include <string.h>
 
 // --- 關卡設定 ---
-#define TILE_SIZE 70
+#define TILE_SIZE 85
 #define MAZE_COLS 8
 #define MAZE_ROWS 8
 
@@ -180,15 +180,15 @@ void DrawLevel3(const GameState *state) {
         
         if (failedTimer <= 10.0f) {
             // 第一階段 (0~10秒)：只顯示故事文字，放在畫面正中央
-            DrawText("You hear a familiar voice saying", 
+            DrawText("You hear a familiar voice saying: ", 
                      GetScreenWidth()/2 - 580, GetScreenHeight()/2 - 280, 35, GRAY);
-            DrawText("Wake up! You're almost there.\nDon't fall asleep...",
+            DrawText("\"Wake up! You're almost there.\nDon't fall asleep...\"",
                      GetScreenWidth()/2 - 580, GetScreenHeight()/2 - 80, 50, WHITE);
         } else {
             // 第二階段 (10秒後)：顯示系統關閉與按鍵指示
             DrawText("SYSTEM SHUTDOWN", GetScreenWidth()/2 - 380, 350, 80, RED);
             DrawText("[ Press SPACE to Restart Level 3 ]", GetScreenWidth()/2 - 250, 550, 30, WHITE);
-            DrawText("[ Press ESC to Return to Main Hub ]", GetScreenWidth()/2 - 230, 610, 25, DARKGRAY);
+            // DrawText("[ Press ESC to Return to Main Hub ]", GetScreenWidth()/2 - 230, 610, 25, DARKGRAY);
         }
         
         return; // 畫完失敗畫面就結束，不畫底下的迷宮
@@ -231,16 +231,16 @@ void DrawLevel3(const GameState *state) {
 
     // UI 資訊
     DrawText(TextFormat("Remaining Oxygen: %.1f s", timeLeft), 20, 20, 30, (timeLeft < 15) ? RED : WHITE);
-    if (hasHandle) DrawText("Staus: Handle founded, please go to the Core Device.", 20, 60, 20, GREEN);
+    if (hasHandle) DrawText("Staus: Handle founded, please go to the Core Device.", 20, 60, 25, GREEN);
     else DrawText("Hint: Please search for the handle in the North East corner.", 20, 60, 25, GRAY);
 
     // --- 繪製密碼輸入介面 ---
     if (showLockUI) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f));
-        DrawText("Core Device Activate Program", GetScreenWidth()/2 - 150, 200, 40, WHITE);
-        DrawText("Enter (U/D/L/R)", GetScreenWidth()/2 - 160, 280, 20, LIGHTGRAY);
-        DrawText(TextFormat("Current input: %s", inputBuffer), GetScreenWidth()/2 - 100, 350, 40, YELLOW);
-        DrawText("Automatically cleared if wrong (Press ESC to escape the device)", GetScreenWidth()/2 - 200, 450, 20, GRAY);
+        DrawText("Core Device Activate Program", GetScreenWidth()/2 - 260, 200, 40, WHITE);
+        DrawText("Enter (U/D/L/R) using arrow keys", GetScreenWidth()/2 - 260, 280, 20, LIGHTGRAY);
+        DrawText(TextFormat("Current input: %s", inputBuffer), GetScreenWidth()/2 - 200, 350, 40, YELLOW);
+        DrawText("Automatically cleared if wrong", GetScreenWidth()/2 - 260, 450, 20, GRAY);
     }
 
     // --- 繪製故事開場白 (疊在最上層) ---

@@ -21,6 +21,7 @@ typedef struct {
     int count;
     bool opened;
     int selected;
+    bool viewingDetail;
 } Inventory;
 
 // Globally shared game state

@@ -110,7 +110,7 @@ int main(void) {
                 break;
             case SCREEN_ENDING:
                 DrawText("Congratulations. You have completed the mission.\nThe core was repaired safely and the escape pod has been launched.", 300, 400, 35, GREEN);
-                DrawText("[ Press SPACE to go bake to Main Hub ]", 480, 550, 20, GRAY);
+                DrawText("[ Press SPACE to go back to Main Hub ]", 480, 550, 20, GRAY);
                 break;
         }
 

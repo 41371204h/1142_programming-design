@@ -1,8 +1,8 @@
 #include "raylib.h"
 #include "game_shared.h"
-#include "level3.h"
 #include "level1.h"
-// #include "level2.h" 
+#include "level2.h"
+#include "level3.h"
 #include <string.h> 
 
 #define SCREEN_HEIGHT 960
@@ -16,7 +16,9 @@ static Rectangle termLevel3 = { 880, 450, 250, 180 }; // terminal for Level 3 (m
 // Declare the functions only used in home page
 void UpdateHub(GameState *state);
 void DrawHub(GameState *state);
+void UpdateGlobalInventory(GameState *state);
 void DrawGlobalInventory(const GameState *state); /// --- 全域物品欄繪製宣告 ---
+void DrawInventoryItemDetail(const char *itemName);
 
 /// --- 跨關卡共用的 AddItem 實作 ---
 void AddItem(GameState *state, const char *itemName) {
@@ -36,13 +38,14 @@ int main(void) {
     state.currentScreen = SCREEN_HUB; // the game starts at home page
     
     state.isLevel1Cleared = true; ///
-    state.isLevel2Cleared = false;
+    state.isLevel2Cleared = true;
 
     // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)
-    state.playerSprite = LoadTexture("assets/character.png"); 
+    state.playerSprite = LoadTexture("assets/character.png"); // assets or resources
 
     /// --- 遊戲啟動時，先初始化第一關的變數 ---
     InitLevel1();
+    InitLevel2();
 
     // 3. Game main loop
     while (!WindowShouldClose()) {
@@ -57,19 +60,14 @@ int main(void) {
                 state.currentScreen == SCREEN_LEVEL2 ||
                 state.currentScreen == SCREEN_LEVEL3){
                 
-                    state.inventory.opened = !state.inventory.opened;
-                }
+                state.inventory.opened = !state.inventory.opened;
+                state.inventory.viewingDetail = false;
+            }
         }
 
         // --- A. 邏輯更新層 (Update) ---
         if (state.inventory.opened) {
-            /// --- 物品欄開啟時，攔截上下鍵操作 ---
-            if (IsKeyPressed(KEY_UP) && state.inventory.selected > 0) {
-                state.inventory.selected--;
-            }
-            if (IsKeyPressed(KEY_DOWN) && state.inventory.selected < state.inventory.count - 1) {
-                state.inventory.selected++;
-            }
+            UpdateGlobalInventory(&state);
         }
 
         switch (state.currentScreen) {
@@ -81,10 +79,7 @@ int main(void) {
                 UpdateLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
-                if (IsKeyPressed(KEY_ENTER)) {
-                    state.isLevel2Cleared = true;
-                    state.currentScreen = SCREEN_HUB;
-                }
+                UpdateLevel2(&state);
                 break;
             case SCREEN_LEVEL3:
                 UpdateLevel3(&state); // 執行第三關
@@ -107,8 +102,7 @@ int main(void) {
                 DrawLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
-                DrawText("--- Level 2 Maintenance Hub---", 400, 400, 30, LIGHTGRAY); 
-                DrawText("[Under developement] Press ENTER to pretend clearing lv2", 320, 500, 20, YELLOW);
+                DrawLevel2(&state);
                 break;
             case SCREEN_LEVEL3:
                 // 將 &state 傳入第三關的繪製函式中
@@ -223,6 +217,53 @@ void DrawHub(GameState *state) {
     }
 }
 
+/// --- 全域物品欄邏輯更新 ---
+void UpdateGlobalInventory(GameState *state) {
+    // 如果目前正在查看物品詳細內容
+    if (state->inventory.viewingDetail) {
+        // 加入 IsKeyPressed(KEY_Z)
+        if (IsKeyPressed(KEY_Z) || IsKeyPressed(KEY_X)) {
+            state->inventory.viewingDetail = false; // 縮回放大前的狀態
+        }
+        return; // 確保在詳細畫面時，不會執行到下方的上下鍵和開啟邏輯
+    }
+
+    /// --- 物品欄開啟時，攔截上下鍵操作 ---
+    if (IsKeyPressed(KEY_UP) && state->inventory.selected > 0) {
+        state->inventory.selected--;
+    }
+    if (IsKeyPressed(KEY_DOWN) && state->inventory.selected < state->inventory.count - 1) {
+        state->inventory.selected++;
+    }
+
+    // 按 Z 放大查看物品
+    if (IsKeyPressed(KEY_Z) && state->inventory.count > 0) {
+        state->inventory.viewingDetail = true;
+    }
+}
+
+/// --- 全域物品詳細內容繪製 ---
+void DrawInventoryItemDetail(const char *itemName) {
+    //DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
+    //DrawRectangleLines(240, 170, 800, 470, WHITE);
+
+    //在這裡加各個物品的繪製程式
+    if (strcmp(itemName, "paper with clue") == 0) {
+        DrawPaperText();
+    } else if (strcmp(itemName, "Morse Code Table") == 0) {
+        DrawMorseTable();
+    } else if (strcmp(itemName, "Navigation Command") == 0) {
+        DrawNavigationCommand();
+    } else {
+        DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
+        DrawRectangleLines(240, 170, 800, 470, WHITE);
+        DrawText(itemName, 310, 220, 30, BLACK);
+        DrawText("No detail available.", 310, 310, 25, DARKGRAY);
+    }
+
+    //DrawText("[ Press X to Back ]", 760, 590, 18, DARKGRAY);
+}
+
 /// --- 全域物品欄介面繪製 ---
 void DrawGlobalInventory(const GameState *state) {
     DrawRectangle(140, 700, 1000, 220, Fade(DARKGRAY, 0.9f));
@@ -244,5 +285,11 @@ void DrawGlobalInventory(const GameState *state) {
             }
         }
     }
+    // 將原本的提示文字改成這樣，讓玩家知道 Z 鍵可以切換放大/縮小
+    DrawText("[ Z: View / Close ]", 740, 880, 18, GRAY);
     DrawText("[ Press C to Close ]", 920, 880, 18, GRAY);
+
+    if (state->inventory.viewingDetail && state->inventory.count > 0) {
+        DrawInventoryItemDetail(state->inventory.items[state->inventory.selected]);
+    }
 }

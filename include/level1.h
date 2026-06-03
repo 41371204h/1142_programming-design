@@ -12,4 +12,8 @@ void UpdateLevel1(GameState *state);
 // 繪製第一關畫面 (接收大腦傳來的 state 讀取 Q 版人物貼圖)
 void DrawLevel1(const GameState *state);
 
+void DrawPaperText(void);
+void DrawMorseTable(void);
+void DrawNavigationCommand(void);
+
 #endif // LEVEL1_H

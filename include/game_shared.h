@@ -36,6 +36,8 @@ typedef struct {
     Inventory inventory; 
     // Globally shared variable that store the apperence of the character
     Texture2D playerSprite;
+    Texture2D handleSprite;
+    Font storyFont;
 } GameState;
 
 // add item to inventory

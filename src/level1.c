@@ -106,7 +106,7 @@ static void HandleInteraction(GameState *state)
     //paper & morse table
     if (CheckCollisionRecs(player.rect, paperRect) && !gotPaper) {
         showPaperText = true;
-        AddItem(state, "paper with clue"); // 使用main_hub.c提供的 AddItem
+        AddItem(state, "Paper With Clue"); // 使用main_hub.c提供的 AddItem
         gotPaper = true;
     }
 

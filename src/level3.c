@@ -188,7 +188,7 @@ void DrawLevel3(const GameState *state) {
             // 第二階段 (10秒後)：顯示系統關閉與按鍵指示
             DrawText("SYSTEM SHUTDOWN", GetScreenWidth()/2 - 380, 350, 80, RED);
             DrawText("[ Press SPACE to Restart Level 3 ]", GetScreenWidth()/2 - 250, 550, 30, WHITE);
-            // DrawText("[ Press ESC to Return to Main Hub ]", GetScreenWidth()/2 - 230, 610, 25, DARKGRAY);
+            
         }
         
         return; // 畫完失敗畫面就結束，不畫底下的迷宮
@@ -205,24 +205,34 @@ void DrawLevel3(const GameState *state) {
 
             if (maze[y][x] == 1) { // wall
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, BLACK);
-                DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
             } else if (maze[y][x] == 2) { // handle
-                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, YELLOW);   
-                DrawText("Handle", drawX + 13, drawY + 27, 20, BLACK); // X for horizontal, Y for vertical
-                DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
+                // 設定原始圖片的來源範圍與目標範圍
+                Rectangle sourceRec = { 0.0f, 0.0f, (float)state->handleSprite.width, (float)state->handleSprite.height };
+                Rectangle destRec = { drawX, drawY, TILE_SIZE, TILE_SIZE };
+                
+                // 繪製 Handle 貼圖，會自動縮放適應 TILE_SIZE
+                DrawTexturePro(state->handleSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
             } else if (maze[y][x] == 3) { // core device
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, RED);      
                 DrawText("Core\nDevice", drawX + 5, drawY + 20, 18, WHITE); // X for horizontal, Y for vertical
-                DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
             } else if (maze[y][x] == 4) { // starting point
-                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, BLUE);
-                DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
+                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, DARKGRAY);
             } else { // path
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, LIGHTGRAY);
-                DrawRectangleLines(drawX, drawY, TILE_SIZE, TILE_SIZE, WHITE);
             }
         }
     }
+    // 繪製整個迷宮的最外圍邊框
+    // 寬度 = 行數 * 格子大小；高度 = 列數 * 格子大小
+    Rectangle mazeOuterBounds = { 
+        (float)offsetX, 
+        (float)offsetY, 
+        (float)(MAZE_COLS * TILE_SIZE), 
+        (float)(MAZE_ROWS * TILE_SIZE) 
+    };
+    
+    // 畫一個粗細為 4.0 的白色大外框，把整個迷宮包起來
+    DrawRectangleLinesEx(mazeOuterBounds, 4.0f, WHITE);
 
     // 繪製玩家
     Rectangle sourceRec = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };

@@ -13,14 +13,17 @@ static Rectangle termLevel1 = { 150, 450, 250, 180 }; // terminal for Level 1 (l
 static Rectangle termLevel2 = { 515, 450, 250, 180 }; // terminal for Level 2 (right)
 static Rectangle termLevel3 = { 880, 450, 250, 180 }; // terminal for Level 3 (middle)
 
+// 結局畫面的專屬計時器
+static float endingTimer = 0.0f;
+
 // Declare the functions only used in home page
 void UpdateHub(GameState *state);
 void DrawHub(GameState *state);
 void UpdateGlobalInventory(GameState *state);
-void DrawGlobalInventory(const GameState *state); /// --- 全域物品欄繪製宣告 ---
+void DrawGlobalInventory(const GameState *state); // --- 全域物品欄繪製宣告 ---
 void DrawInventoryItemDetail(const char *itemName);
 
-/// --- 跨關卡共用的 AddItem 實作 ---
+// --- 跨關卡共用的 AddItem 實作 ---
 void AddItem(GameState *state, const char *itemName) {
     if (state->inventory.count < MAX_ITEMS) {
         strcpy(state->inventory.items[state->inventory.count], itemName);
@@ -37,13 +40,20 @@ int main(void) {
     GameState state = {0};
     state.currentScreen = SCREEN_HUB; // the game starts at home page
     
-    state.isLevel1Cleared = true; ///
-    state.isLevel2Cleared = true;
+    state.isLevel1Cleared = false; ///
+    state.isLevel2Cleared = false;
+
+    // strcpy(state.secretSequence, "URLD"); /// for testing lv3, will be deleted after testing
 
     // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)
-    state.playerSprite = LoadTexture("assets/character.png"); // assets or resources
+    state.playerSprite = LoadTexture("assets/character.png");
+    
+    // 載入 Handle 貼圖
+    state.handleSprite = LoadTexture("assets/handle.png");
 
-    /// --- 遊戲啟動時，先初始化第一關的變數 ---
+    // 載入故事頁面用的字體：Ubuntu Sans Mono 28
+    state.storyFont = LoadFontEx("assets/story_font.ttf", 28, NULL, 0);
+    // --- 遊戲啟動時，先初始化第一關的變數 ---
     InitLevel1();
     InitLevel2();
 
@@ -75,7 +85,7 @@ int main(void) {
                 UpdateHub(&state);
                 break;
             case SCREEN_LEVEL1:
-                /// --- 串接第一關邏輯 ---
+                // --- 串接第一關邏輯 ---
                 UpdateLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
@@ -85,7 +95,7 @@ int main(void) {
                 UpdateLevel3(&state); // 執行第三關
                 break;
             case SCREEN_ENDING:
-                if (IsKeyPressed(KEY_SPACE)) state.currentScreen = SCREEN_HUB; 
+                endingTimer += GetFrameTime();
                 break;
             }
 
@@ -109,12 +119,19 @@ int main(void) {
                 DrawLevel3(&state); 
                 break;
             case SCREEN_ENDING:
-                DrawText("Congratulations. You have completed the mission.\nThe core was repaired safely and the escape pod has been launched.", 300, 400, 35, GREEN);
-                DrawText("[ Press SPACE to go back to Main Hub ]", 480, 550, 20, GRAY);
+                if (endingTimer < 10.0f) { /// TODO
+                    // 前 10 秒：顯示故事頁面
+                    DrawText("The central escape pod activates...", 250, 400, 35, LIGHTGRAY);
+                    DrawText("Leaving the deep sea station behind in the dark abyss.", 180, 480, 35, LIGHTGRAY);
+                } else {
+                    // 10 秒後：畫面變黑，中央顯示 The end
+                    DrawText("The end", SCREEN_WIDTH / 2 - 170, SCREEN_HEIGHT / 2 - 40, 80, WHITE);
+                    DrawText("[ Press ESC to escape this game ]", SCREEN_WIDTH / 2 - 190, SCREEN_HEIGHT / 2 + 80, 23, LIGHTGRAY);
+                }
                 break;
         }
 
-        /// --- 永遠疊加在最上層的全域物品欄繪製 ---
+        // --- 永遠疊加在最上層的全域物品欄繪製 ---
         if (state.inventory.opened) {
             DrawGlobalInventory(&state);
         }
@@ -122,8 +139,10 @@ int main(void) {
         EndDrawing();
     }
 
-    // 遊戲結束關閉前，釋放顯示卡中的玩家貼圖記憶體
+    // 遊戲結束關閉前，釋放顯示卡中素材的記憶體
     UnloadTexture(state.playerSprite);
+    UnloadTexture(state.handleSprite);
+    UnloadFont(state.storyFont);
 
     // 4. 清理並關閉
     CloseWindow();
@@ -140,7 +159,7 @@ void UpdateHub(GameState *state) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         
         if (CheckCollisionPointRec(mousePos, termLevel1)) {
-            /// --- 確保每次點進第一關都是全新的狀態 ---
+            // --- 確保每次點進第一關都是全新的狀態 ---
             InitLevel1(); 
             state->currentScreen = SCREEN_LEVEL1;
         }
@@ -213,11 +232,12 @@ void DrawHub(GameState *state) {
         DrawText("Press SPACE to start the launch procedure", 420, 900, 23, LIGHTGRAY);
         if (IsKeyPressed(KEY_SPACE)) {
             state->currentScreen = SCREEN_ENDING;
+            endingTimer = 0.0f;
         }
     }
 }
 
-/// --- 全域物品欄邏輯更新 ---
+// --- 全域物品欄邏輯更新 ---
 void UpdateGlobalInventory(GameState *state) {
     // 如果目前正在查看物品詳細內容
     if (state->inventory.viewingDetail) {
@@ -228,7 +248,7 @@ void UpdateGlobalInventory(GameState *state) {
         return; // 確保在詳細畫面時，不會執行到下方的上下鍵和開啟邏輯
     }
 
-    /// --- 物品欄開啟時，攔截上下鍵操作 ---
+    // --- 物品欄開啟時，攔截上下鍵操作 ---
     if (IsKeyPressed(KEY_UP) && state->inventory.selected > 0) {
         state->inventory.selected--;
     }
@@ -242,13 +262,13 @@ void UpdateGlobalInventory(GameState *state) {
     }
 }
 
-/// --- 全域物品詳細內容繪製 ---
+// --- 全域物品詳細內容繪製 ---
 void DrawInventoryItemDetail(const char *itemName) {
     //DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
     //DrawRectangleLines(240, 170, 800, 470, WHITE);
 
     //在這裡加各個物品的繪製程式
-    if (strcmp(itemName, "paper with clue") == 0) {
+    if (strcmp(itemName, "Paper With Clue") == 0) {
         DrawPaperText();
     } else if (strcmp(itemName, "Morse Code Table") == 0) {
         DrawMorseTable();
@@ -264,7 +284,7 @@ void DrawInventoryItemDetail(const char *itemName) {
     //DrawText("[ Press X to Back ]", 760, 590, 18, DARKGRAY);
 }
 
-/// --- 全域物品欄介面繪製 ---
+// --- 全域物品欄介面繪製 ---
 void DrawGlobalInventory(const GameState *state) {
     DrawRectangle(140, 700, 1000, 220, Fade(DARKGRAY, 0.9f));
     DrawRectangleLines(140, 700, 1000, 220, WHITE);

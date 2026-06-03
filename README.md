@@ -1,6 +1,39 @@
-# 3 Door Puzzle Game
-## Description
-## Structure
+# Under The Sea
+A narrative-driven **mystery puzzle game** built from scratch using the `raylib` library.
+## 📖 The Story
+
+
+## 🎮 Key Features
+
+## 🛠️ Tech Stack & Requirements
+* **Language**: [C]
+* **Graphics Library**: [raylib](https://raylib.com)
+* **Compiler**: GNU C Compiler (GCC)
+* **Build System**: Standalone Shell Script (`build.sh`)
+
+## 📦 How to Build and Run
+We have included a convenient shell script (`build.sh`) that automates the GCC compilation and linking process for raylib.
+
+### Prerequisites
+Make sure you have the **GNU C Compiler (GCC)** and **raylib** installed on your system.
+
+### Steps
+1. Clone the repository and navigate into the folder:
+   ```bash
+   git clone https://github.com/41371204h/1142_programming-design
+   cd 1142_programming-design
+   ```
+
+2. Give execution permission to the script (if needed):
+   ```bash
+   chmod +x build.sh
+   ```
+
+3. Build and run the game instantly:
+   ```bash
+   ./build.sh
+   ```
+## 📁 Project Structure
 ```
 1142_programming-design/
 ├── .gitignore          # 守門員：阻擋執行檔等垃圾上傳
@@ -18,5 +51,3 @@
     └── level2.c        # 繪製與控制第二關的程式
     └── level3.c        # 繪製與控制第三關的程式
 ```
-## Installation
-## Usage

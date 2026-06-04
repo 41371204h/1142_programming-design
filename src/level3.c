@@ -1,3 +1,5 @@
+// TODO: add a rectangle that shows the player gets the key after entering the right answer
+
 #include "raylib.h"
 #include "game_shared.h"
 #include "level3.h"
@@ -12,19 +14,19 @@
 typedef enum {
     L3_STORY,   // 顯示故事開場白
     L3_PLAYING, // 實際遊玩與計時中
-    L3_FAILED   // 失敗黑屏
+    L3_FAILED   // 失敗畫面黑掉
 } L3State;
 
 // 迷宮初始模板 (每次重置都會拷貝這份)
-// 1=wall, 0=path, 2=handle(North East), 3=Core device(center), 4=starting point
+// 0=path, 1=wall, 2=handle(North East), 3=Core device(center), 4=starting point
 const int defaultMaze[MAZE_ROWS][MAZE_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 0, 0, 0, 0, 2, 1},
-    {1, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 1, 0, 1, 1, 1},
-    {1, 0, 0, 1, 3, 0, 0, 1},
+    {1, 1, 1, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 1, 0, 1},
+    {1, 0, 1, 1, 2, 1, 0, 1},
     {1, 0, 0, 1, 1, 1, 0, 1},
-    {1, 4, 0, 0, 0, 0, 0, 1},
+    {1, 0, 1, 0, 0, 0, 0, 1},
+    {1, 4, 1, 3, 1, 0, 1, 1},
     {1, 1, 1, 1, 1, 1, 1, 1}
 };
 
@@ -40,7 +42,9 @@ static char inputBuffer[5] = "";
 static int inputIndex = 0;
 
 // 紀錄在失敗畫面停留了多久
-static float failedTimer = 0.0f; 
+static float failedTimer = 0.0f;
+// 用來控制是否顯示失敗故事頁面的變數
+static bool showFailedStory = false;
 
 // --- 重置關卡的專屬函數 ---
 static void ResetLevel3(GameState *state) {
@@ -54,7 +58,8 @@ static void ResetLevel3(GameState *state) {
     memset(inputBuffer, 0, sizeof(inputBuffer));
     
     // 每次重置關卡時，也要把失敗計時器歸零
-    failedTimer = 0.0f; 
+    failedTimer = 0.0f;
+    showFailedStory = false; // 重置時關閉故事畫面
     
     for (int i = 0; i < state->inventory.count; i++) {
         if (strcmp(state->inventory.items[i], "Handle") == 0) {
@@ -92,17 +97,23 @@ void UpdateLevel3(GameState *state) {
             break;
 
         case L3_FAILED:
-            // 1. 持續累加失敗畫面的停留時間
-            failedTimer += GetFrameTime(); 
-
-            // 2. 經過 10 秒後，才進入「第二階段」並允許玩家按鍵
-            if (failedTimer > 10.0f) {
+            if (showFailedStory) {
+                // 第一階段 (故事)：計時器繼續跑，用來推動打字機效果
+                failedTimer += GetFrameTime(); 
+                
+                // 玩家按下 X 鍵，結束故事頁面，進入系統關閉畫面
+                if (IsKeyPressed(KEY_X)) {
+                    showFailedStory = false; 
+                }
+            } else {
+                // 第二階段 (系統關閉)：等待玩家重新開始或回主畫面
                 if (IsKeyPressed(KEY_SPACE)) {
                     ResetLevel3(state);
-                } else if (IsKeyPressed(KEY_ESCAPE)) {
+                } 
+                /*else if (IsKeyPressed(KEY_ESCAPE)) {
                     ResetLevel3(state);
                     state->currentScreen = SCREEN_HUB;
-                }
+                } */
             }
             break;
 
@@ -112,6 +123,7 @@ void UpdateLevel3(GameState *state) {
                 timeLeft = 0;
                 currentState = L3_FAILED; 
                 failedTimer = 0.0f; // 確保剛進入失敗狀態時，計時器是 0
+                showFailedStory = true;
                 break;
             }
             // make sure that the timer is still counting down when the inventory is opened
@@ -178,19 +190,31 @@ void DrawLevel3(const GameState *state) {
     if (currentState == L3_FAILED) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
         
-        if (failedTimer <= 10.0f) {
-            // 第一階段 (0~10秒)：只顯示故事文字，放在畫面正中央
-            DrawText("You hear a familiar voice saying: ", 
-                     GetScreenWidth()/2 - 580, GetScreenHeight()/2 - 280, 35, GRAY);
-            DrawText("\"Wake up! You're almost there.\nDon't fall asleep...\"",
-                     GetScreenWidth()/2 - 580, GetScreenHeight()/2 - 80, 50, WHITE);
+        if (showFailedStory) {
+            // 第一階段：顯示故事文字 (套用自訂字體)
+            // 第一行字直接完整顯示
+            DrawTextEx(state->storyFont, "You hear a familiar voice saying: ", 
+                       (Vector2){GetScreenWidth()/2.0f - 580, GetScreenHeight()/2.0f - 280}, 
+                       35, 2, GRAY);
+            
+            // 打字機特效邏輯：
+            // 根據停留的時間 (failedTimer) 乘上每秒想出現的字數 (例如 20)
+            const char *typeText = "\"Wake up! You're almost there.\nDon't fall asleep...\"";
+            int charsToShow = (int)(failedTimer * 20.0f); 
+            
+            // 第二行字套用 TextSubtext 慢慢浮現
+            DrawTextEx(state->storyFont, TextSubtext(typeText, 0, charsToShow),
+                       (Vector2){GetScreenWidth()/2.0f - 580, GetScreenHeight()/2.0f - 80}, 
+                       50, 2, WHITE);
+            
+            // 提示玩家按 X 鍵
+            DrawText("[ Press X to Continue ]", GetScreenWidth()/2 - 130, GetScreenHeight() - 100, 20, DARKGRAY);
+
         } else {
-            // 第二階段 (10秒後)：顯示系統關閉與按鍵指示
+            // 第二階段：顯示系統關閉與按鍵指示 (這裡保持原本乾淨俐落的系統字體)
             DrawText("SYSTEM SHUTDOWN", GetScreenWidth()/2 - 380, 350, 80, RED);
             DrawText("[ Press SPACE to Restart Level 3 ]", GetScreenWidth()/2 - 250, 550, 30, WHITE);
-            
         }
-        
         return; // 畫完失敗畫面就結束，不畫底下的迷宮
     }
 
@@ -205,19 +229,23 @@ void DrawLevel3(const GameState *state) {
 
             if (maze[y][x] == 1) { // wall
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, BLACK);
-            } else if (maze[y][x] == 2) { // handle
+            } 
+            else if (maze[y][x] == 2) { // handle
                 // 設定原始圖片的來源範圍與目標範圍
                 Rectangle sourceRec = { 0.0f, 0.0f, (float)state->handleSprite.width, (float)state->handleSprite.height };
                 Rectangle destRec = { drawX, drawY, TILE_SIZE, TILE_SIZE };
                 
                 // 繪製 Handle 貼圖，會自動縮放適應 TILE_SIZE
                 DrawTexturePro(state->handleSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
-            } else if (maze[y][x] == 3) { // core device
+            } 
+            else if (maze[y][x] == 3) { // core device
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, RED);      
                 DrawText("Core\nDevice", drawX + 5, drawY + 20, 18, WHITE); // X for horizontal, Y for vertical
-            } else if (maze[y][x] == 4) { // starting point
+            } 
+            else if (maze[y][x] == 4) { // starting point
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, DARKGRAY);
-            } else { // path
+            } 
+            else { // path
                 DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, LIGHTGRAY);
             }
         }
@@ -240,7 +268,7 @@ void DrawLevel3(const GameState *state) {
     DrawTexturePro(state->playerSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
 
     // UI 資訊
-    DrawText(TextFormat("Remaining Oxygen: %.1f s", timeLeft), 20, 20, 30, (timeLeft < 15) ? RED : WHITE);
+    DrawText(TextFormat("Remaining Time: %.1f s", timeLeft), 20, 20, 30, (timeLeft < 15) ? RED : WHITE);
     if (hasHandle) DrawText("Staus: Handle founded, please go to the Core Device.", 20, 60, 25, GREEN);
     else DrawText("Hint: Please search for the handle in the North East corner.", 20, 60, 25, GRAY);
 

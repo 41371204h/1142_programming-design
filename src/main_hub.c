@@ -43,13 +43,15 @@ int main(void) {
     state.isLevel1Cleared = false; ///
     state.isLevel2Cleared = false;
 
-    // strcpy(state.secretSequence, "URLD"); /// for testing lv3, will be deleted after testing
+    strcpy(state.secretSequence, "URLD"); /// for testing lv3, will be deleted after testing
 
     // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)
     state.playerSprite = LoadTexture("assets/character.png");
     
     // 載入 Handle 貼圖
     state.handleSprite = LoadTexture("assets/handle.png");
+    // load the key card for level 3
+    state.keySprite = LoadTexture("assets/key.png");
 
     // 載入故事頁面用的字體：Ubuntu Sans Mono 28
     state.storyFont = LoadFontEx("assets/story_font.ttf", 28, NULL, 0);
@@ -154,6 +156,13 @@ int main(void) {
 // --------------------------------------------------------
 void UpdateHub(GameState *state) {
 
+    // 在 Update 層處理按鍵，就不會跟同一個幀 (Frame) 的其他畫面衝突
+    if (state->isLevel1Cleared && state->isLevel2Cleared && state->isLevel3Cleared) {
+        if (IsKeyPressed(KEY_SPACE)) {
+            state->currentScreen = SCREEN_ENDING;
+            endingTimer = 0.0f;
+        }
+    }
     Vector2 mousePos = GetMousePosition();
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -230,10 +239,6 @@ void DrawHub(GameState *state) {
         DrawRectangle(0, 820, SCREEN_WIDTH, 140, DARKGREEN);
         DrawText("[ Warning! ] All systems have been repaired! The escape pod has been unlocked!", 20, 850, 30, WHITE);
         DrawText("Press SPACE to start the launch procedure", 420, 900, 23, LIGHTGRAY);
-        if (IsKeyPressed(KEY_SPACE)) {
-            state->currentScreen = SCREEN_ENDING;
-            endingTimer = 0.0f;
-        }
     }
 }
 

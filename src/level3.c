@@ -41,6 +41,9 @@ static bool showLockUI = false;
 static char inputBuffer[5] = ""; 
 static int inputIndex = 0;
 
+// 控制「獲得道具」視窗是否顯示的開關
+static bool showItemPopup = false;
+
 // 紀錄在失敗畫面停留了多久
 static float failedTimer = 0.0f;
 // 用來控制是否顯示失敗故事頁面的變數
@@ -54,6 +57,7 @@ static void ResetLevel3(GameState *state) {
     timeLeft = 60.0f; ///
     hasHandle = false;
     showLockUI = false;
+    showItemPopup = false;
     inputIndex = 0;
     memset(inputBuffer, 0, sizeof(inputBuffer));
     
@@ -118,6 +122,18 @@ void UpdateLevel3(GameState *state) {
             break;
 
         case L3_PLAYING:
+            // 如果正在顯示彈出視窗，等待玩家確認
+            if (showItemPopup) {
+                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+                    showItemPopup = false;
+                    
+                    // 玩家按空白鍵確認後，才真正判定第三關過關並回主畫面！
+                    state->isLevel3Cleared = true;
+                    state->currentScreen = SCREEN_HUB; 
+                    ResetLevel3(state); 
+                }
+                return; // 暫停時間倒數與背景的一切活動
+            }
             timeLeft -= GetFrameTime();
             if (timeLeft <= 0) {
                 timeLeft = 0;
@@ -140,9 +156,10 @@ void UpdateLevel3(GameState *state) {
                     inputBuffer[4] = '\0';
                     if (strcmp(inputBuffer, state->secretSequence) == 0) {
                         // 密碼正確！過關
-                        state->isLevel3Cleared = true;
-                        state->currentScreen = SCREEN_HUB; // 回到主畫面
-                        ResetLevel3(state); // 為下一次遊玩重置
+                        showLockUI = false;   // 關閉密碼鎖的 UI
+                        showItemPopup = true; // 開啟獲得道具視窗
+                        AddItem(state, "Key Card");
+                        // ResetLevel3(state); // 為下一次遊玩重置
                     } else {
                         // 密碼錯誤，清空重打 (但不中斷遊戲與時間)
                         inputIndex = 0;
@@ -295,5 +312,32 @@ void DrawLevel3(const GameState *state) {
         DrawText("Oxygen levels insufficient...\nPlease evacuate immediately.",
                  boxX + 50, boxY + 80, 30, WHITE);
         DrawText("[Press Space To Start]", boxX + 160, boxY + 160, 20, LIGHTGRAY);
+    }
+
+    // 繪製過關獲得道具的彈出視窗 (疊在絕對的最上層)
+    if (showItemPopup) {
+        // 畫全螢幕半透明黑底 (跟故事開場白一樣的風格)
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f)); 
+        
+        // 視窗大小與置中計算
+        int boxWidth = 500;
+        int boxHeight = 350;
+        int boxX = (GetScreenWidth() - boxWidth) / 2;
+        int boxY = (GetScreenHeight() - boxHeight) / 2;
+        
+        // 畫出如同第三關開場白那樣的純黑底框與白線
+        DrawRectangle(boxX, boxY, boxWidth, boxHeight, BLACK);
+        DrawRectangleLinesEx((Rectangle){boxX, boxY, boxWidth, boxHeight}, 3.0f, WHITE);
+        
+        // 顯示獲得道具文字
+        DrawText("SYSTEM UNLOCKED", boxX + 90, boxY + 30, 35, GREEN);
+        DrawText("Obtained: Key Card", boxX + 110, boxY + 230, 22, WHITE);
+        DrawText("[ Press SPACE to Return to Main Hub ]", boxX + 60, boxY + 300, 18, LIGHTGRAY);
+
+        // 渲染道具圖片 (置中縮放為 100x100)
+        // (若你有專屬的過關道具圖片，請將 handleSprite 替換為你的圖片變數)
+        Rectangle sourceRec = { 0.0f, 0.0f, (float)state->keySprite.width, (float)state->keySprite.height };
+        Rectangle destRec = { boxX + (boxWidth - 100) / 2, boxY + 100, 100, 100 };
+        DrawTexturePro(state->keySprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
     }
 }

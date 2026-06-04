@@ -37,6 +37,7 @@ typedef struct {
     // Globally shared variable that store the apperence of the character
     Texture2D playerSprite;
     Texture2D handleSprite;
+    Texture2D keySprite;
     Font storyFont;
 } GameState;
 

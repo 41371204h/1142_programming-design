@@ -7,8 +7,8 @@
 
 // --- 關卡設定 ---
 #define TILE_SIZE 85
-#define MAZE_COLS 8
-#define MAZE_ROWS 8
+#define MAZE_COLS 6
+#define MAZE_ROWS 6
 
 // 定義第三關的內部狀態
 typedef enum {
@@ -20,14 +20,12 @@ typedef enum {
 // 迷宮初始模板 (每次重置都會拷貝這份)
 // 0=path, 1=wall, 2=handle(North East), 3=Core device(center), 4=starting point
 const int defaultMaze[MAZE_ROWS][MAZE_COLS] = {
-    {1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 1, 1, 1, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 1, 0, 1},
-    {1, 0, 1, 1, 2, 1, 0, 1},
-    {1, 0, 0, 1, 1, 1, 0, 1},
-    {1, 0, 1, 0, 0, 0, 0, 1},
-    {1, 4, 1, 3, 1, 0, 1, 1},
-    {1, 1, 1, 1, 1, 1, 1, 1}
+    {1, 1, 1, 0, 0, 0},
+    {0, 0, 0, 0, 1, 0},
+    {0, 1, 1, 2, 1, 0},
+    {0, 0, 1, 1, 1, 0},
+    {0, 1, 0, 0, 0, 0},
+    {0, 1, 3, 1, 0, 1},
 };
 
 // --- 關卡狀態變數 ---
@@ -52,8 +50,8 @@ static bool showFailedStory = false;
 // --- 重置關卡的專屬函數 ---
 static void ResetLevel3(GameState *state) {
     currentState = L3_STORY; 
-    playerX = 1;
-    playerY = 6;
+    playerX = 0;
+    playerY = 5;
     timeLeft = 60.0f; ///
     hasHandle = false;
     showLockUI = false;
@@ -209,30 +207,24 @@ void DrawLevel3(const GameState *state) {
         
         if (showFailedStory) {
             // 第一階段：顯示故事文字 (套用自訂字體)
-            // 第一行字直接完整顯示
             DrawTextEx(state->storyFont, "You hear a familiar voice saying: ", 
                        (Vector2){GetScreenWidth()/2.0f - 580, GetScreenHeight()/2.0f - 280}, 
                        35, 2, GRAY);
             
-            // 打字機特效邏輯：
-            // 根據停留的時間 (failedTimer) 乘上每秒想出現的字數 (例如 20)
             const char *typeText = "\"Wake up! You're almost there.\nDon't fall asleep...\"";
             int charsToShow = (int)(failedTimer * 20.0f); 
             
-            // 第二行字套用 TextSubtext 慢慢浮現
             DrawTextEx(state->storyFont, TextSubtext(typeText, 0, charsToShow),
                        (Vector2){GetScreenWidth()/2.0f - 580, GetScreenHeight()/2.0f - 80}, 
                        50, 2, WHITE);
             
-            // 提示玩家按 X 鍵
             DrawText("[ Press X to Continue ]", GetScreenWidth()/2 - 130, GetScreenHeight() - 100, 20, DARKGRAY);
 
         } else {
-            // 第二階段：顯示系統關閉與按鍵指示 (這裡保持原本乾淨俐落的系統字體)
             DrawText("SYSTEM SHUTDOWN", GetScreenWidth()/2 - 380, 350, 80, RED);
             DrawText("[ Press SPACE to Restart Level 3 ]", GetScreenWidth()/2 - 250, 550, 30, WHITE);
         }
-        return; // 畫完失敗畫面就結束，不畫底下的迷宮
+        return; 
     }
 
     // --- 繪製迷宮與遊戲本體 ---
@@ -244,45 +236,48 @@ void DrawLevel3(const GameState *state) {
             int drawX = offsetX + x * TILE_SIZE;
             int drawY = offsetY + y * TILE_SIZE;
 
-            if (maze[y][x] == 1) { // wall
-                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, BLACK);
-            } 
-            else if (maze[y][x] == 2) { // handle
-                // 設定原始圖片的來源範圍與目標範圍
-                Rectangle sourceRec = { 0.0f, 0.0f, (float)state->handleSprite.width, (float)state->handleSprite.height };
-                Rectangle destRec = { drawX, drawY, TILE_SIZE, TILE_SIZE };
-                
-                // 繪製 Handle 貼圖，會自動縮放適應 TILE_SIZE
-                DrawTexturePro(state->handleSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
-            } 
-            else if (maze[y][x] == 3) { // core device
-                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, RED);      
-                DrawText("Core\nDevice", drawX + 5, drawY + 20, 18, WHITE); // X for horizontal, Y for vertical
-            } 
-            else if (maze[y][x] == 4) { // starting point
-                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, DARKGRAY);
-            } 
-            else { // path
-                DrawRectangle(drawX, drawY, TILE_SIZE, TILE_SIZE, LIGHTGRAY);
+            // 設定目標貼圖的渲染範圍（自動縮放至每一格 TILE_SIZE 的大小）
+            Rectangle destRec = { (float)drawX, (float)drawY, (float)TILE_SIZE, (float)TILE_SIZE };
+            Rectangle sourceRec = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+            // 根據不同的迷宮代碼，指定對應的圖片與來源裁剪範圍
+            switch (maze[y][x]) {
+                case 0: // path.png
+                    sourceRec = (Rectangle){ 0.0f, 0.0f, (float)state->pathSprite.width, (float)state->pathSprite.height };
+                    DrawTexturePro(state->pathSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                    break;
+
+                case 1: // wall.png
+                    sourceRec = (Rectangle){ 0.0f, 0.0f, (float)state->wallSprite.width, (float)state->wallSprite.height };
+                    DrawTexturePro(state->wallSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                    break;
+
+                case 2: // wall_tool.png (原本的 handle)
+                    sourceRec = (Rectangle){ 0.0f, 0.0f, (float)state->wallToolSprite.width, (float)state->wallToolSprite.height };
+                    DrawTexturePro(state->wallToolSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                    break;
+
+                case 3: // wall_device.png (原本的 Core device)
+                    sourceRec = (Rectangle){ 0.0f, 0.0f, (float)state->wallDeviceSprite.width, (float)state->wallDeviceSprite.height };
+                    DrawTexturePro(state->wallDeviceSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                    break;
             }
         }
     }
+    
     // 繪製整個迷宮的最外圍邊框
-    // 寬度 = 行數 * 格子大小；高度 = 列數 * 格子大小
     Rectangle mazeOuterBounds = { 
         (float)offsetX, 
         (float)offsetY, 
         (float)(MAZE_COLS * TILE_SIZE), 
         (float)(MAZE_ROWS * TILE_SIZE) 
     };
-    
-    // 畫一個粗細為 4.0 的白色大外框，把整個迷宮包起來
     DrawRectangleLinesEx(mazeOuterBounds, 4.0f, WHITE);
 
     // 繪製玩家
-    Rectangle sourceRec = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
-    Rectangle destRec = { offsetX + playerX * TILE_SIZE, offsetY + playerY * TILE_SIZE, TILE_SIZE, TILE_SIZE };
-    DrawTexturePro(state->playerSprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+    Rectangle pSourceRec = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
+    Rectangle pDestRec = { offsetX + playerX * TILE_SIZE, offsetY + playerY * TILE_SIZE, TILE_SIZE, TILE_SIZE };
+    DrawTexturePro(state->playerSprite, pSourceRec, pDestRec, (Vector2){0, 0}, 0.0f, WHITE);
 
     // UI 資訊
     DrawText(TextFormat("Remaining Time: %.1f s", timeLeft), 20, 20, 30, (timeLeft < 15) ? RED : WHITE);
@@ -300,7 +295,7 @@ void DrawLevel3(const GameState *state) {
 
     // --- 繪製故事開場白 (疊在最上層) ---
     if (currentState == L3_STORY) {
-        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f)); // 半透明黑底
+        DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.7f)); 
         int boxWidth = 600;
         int boxHeight = 200;
         int boxX = (GetScreenWidth() - boxWidth) / 2;
@@ -309,33 +304,26 @@ void DrawLevel3(const GameState *state) {
         DrawRectangle(boxX, boxY, boxWidth, boxHeight, BLACK);
         DrawRectangleLines(boxX, boxY, boxWidth, boxHeight, WHITE);
         DrawText("Warning!", boxX + 50, boxY + 30, 40, RED);
-        DrawText("Oxygen levels insufficient...\nPlease evacuate immediately.",
-                 boxX + 50, boxY + 80, 30, WHITE);
+        DrawText("Oxygen levels insufficient...\nPlease evacuate immediately.", boxX + 50, boxY + 80, 30, WHITE);
         DrawText("[Press Space To Start]", boxX + 160, boxY + 160, 20, LIGHTGRAY);
     }
 
-    // 繪製過關獲得道具的彈出視窗 (疊在絕對的最上層)
+    // 繪製過關獲得道具的彈出視窗 
     if (showItemPopup) {
-        // 畫全螢幕半透明黑底 (跟故事開場白一樣的風格)
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f)); 
         
-        // 視窗大小與置中計算
         int boxWidth = 500;
         int boxHeight = 350;
         int boxX = (GetScreenWidth() - boxWidth) / 2;
         int boxY = (GetScreenHeight() - boxHeight) / 2;
         
-        // 畫出如同第三關開場白那樣的純黑底框與白線
         DrawRectangle(boxX, boxY, boxWidth, boxHeight, BLACK);
         DrawRectangleLinesEx((Rectangle){boxX, boxY, boxWidth, boxHeight}, 3.0f, WHITE);
         
-        // 顯示獲得道具文字
         DrawText("SYSTEM UNLOCKED", boxX + 90, boxY + 30, 35, GREEN);
         DrawText("Obtained: Key Card", boxX + 110, boxY + 230, 22, WHITE);
         DrawText("[ Press SPACE to Return to Main Hub ]", boxX + 60, boxY + 300, 18, LIGHTGRAY);
 
-        // 渲染道具圖片 (置中縮放為 100x100)
-        // (若你有專屬的過關道具圖片，請將 handleSprite 替換為你的圖片變數)
         Rectangle sourceRec = { 0.0f, 0.0f, (float)state->keySprite.width, (float)state->keySprite.height };
         Rectangle destRec = { boxX + (boxWidth - 100) / 2, boxY + 100, 100, 100 };
         DrawTexturePro(state->keySprite, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);

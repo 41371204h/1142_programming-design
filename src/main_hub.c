@@ -47,9 +47,11 @@ int main(void) {
 
     // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)
     state.playerSprite = LoadTexture("assets/character.png");
-    
-    // 載入 Handle 貼圖
-    state.handleSprite = LoadTexture("assets/handle.png");
+    // 範例：素材載入區塊 (通常在遊戲剛啟動時呼叫一次)
+    state.pathSprite       = LoadTexture("assets/path.png");
+    state.wallSprite       = LoadTexture("assets/wall.png");
+    state.wallToolSprite   = LoadTexture("assets/wall_tool.png");
+    state.wallDeviceSprite = LoadTexture("assets/wall_device.png");
     // load the key card for level 3
     state.keySprite = LoadTexture("assets/key.png");
 
@@ -143,7 +145,10 @@ int main(void) {
 
     // 遊戲結束關閉前，釋放顯示卡中素材的記憶體
     UnloadTexture(state.playerSprite);
-    UnloadTexture(state.handleSprite);
+    UnloadTexture(state.pathSprite);
+    UnloadTexture(state.wallSprite);
+    UnloadTexture(state.wallToolSprite);
+    UnloadTexture(state.wallDeviceSprite);      
     UnloadFont(state.storyFont);
 
     // 4. 清理並關閉

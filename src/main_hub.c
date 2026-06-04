@@ -173,13 +173,16 @@ void UpdateHub(GameState *state) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         
         if (CheckCollisionPointRec(mousePos, termLevel1)) {
-            // --- 確保每次點進第一關都是全新的狀態 ---
-            InitLevel1(); 
-            state->currentScreen = SCREEN_LEVEL1;
+            if (!state->isLevel1Cleared) { // if 第一關還沒過
+                /// --- 確保每次點進第一關都是全新的狀態 ---
+                InitLevel1(); 
+                state->currentScreen = SCREEN_LEVEL1;
+            }
         }
         
         if (CheckCollisionPointRec(mousePos, termLevel2)) {
-            if (state->isLevel1Cleared) {
+            if (state->isLevel1Cleared && !state->isLevel2Cleared) { // if 第一關過完 & 第二關還沒過
+                InitLevel2();
                 state->currentScreen = SCREEN_LEVEL2;
             }
         }

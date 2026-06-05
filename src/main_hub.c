@@ -287,6 +287,8 @@ void DrawInventoryItemDetail(const char *itemName) {
         DrawMorseTable();
     } else if (strcmp(itemName, "Navigation Command") == 0) {
         DrawNavigationCommand();
+    } else if (strcmp(itemName, "Completed Map") == 0) {
+        DrawCompletedMap();
     } else {
         DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
         DrawRectangleLines(240, 170, 800, 470, WHITE);

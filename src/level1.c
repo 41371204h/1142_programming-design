@@ -13,7 +13,7 @@ typedef struct {
 } L1Player;
 
 // ---------------------------
-// 全域變數 (全部加上 static 隱藏起來)
+// 全域變數
 // ---------------------------
 static L1Player player;
 
@@ -23,7 +23,9 @@ static bool gotNavigationCode = false;
 
 static bool showPaperText = false;
 static bool showMorseTable = false;
+static bool showNavigationCommand = false;
 static bool showDialogue = false;
+static bool returnToHubAfterDialogue = false;
 static int dialogueIndex = 0;
 
 static bool inputMode = false;
@@ -33,9 +35,18 @@ static int inputLength = 0;
 static int computerFlashCount = 0;
 static float flashTimer = 0;
 static Color computerFlashColor = GRAY;
+static Color computerFlashTargetColor = GRAY;
+static bool computerFlashOn = false;
 
 static float gameTimer = 0;
 static bool showMorseText = false;
+
+typedef enum {
+    L1_DIALOGUE_START,
+    L1_DIALOGUE_PAPER,
+    L1_DIALOGUE_MORSE_TABLE,
+    L1_DIALOGUE_SUCCESS
+} L1DialogueMode;
 
 // Morse code 閃爍相關
 static int morseIndex = 0;
@@ -48,11 +59,89 @@ static const int morsePattern[] = { // 第一個數字是亮的單位數量，�
     3,1, 1,1, 1, 7 // D = -..
 };
 
-static char *dialogueText =
-"Press Z to interact with objects.\nPress X to cancel.\nPress C to open inventory.";
+static const char **dialogueLines = NULL;
+static int dialogueCount = 0;
+static L1DialogueMode dialogueMode = L1_DIALOGUE_START;
+
+static const char *initialDialogue[] = {
+    "Anyway, I need to figure out the situation first.",
+    "Maybe there are some messages left by others\nin the communications record room.",
+    "...Wait.\nWhy is this place such a mess?",
+    "Oh god, those data have all been destroyed!",
+    "And the voice recording cannot be played back either...\nWhat should I do now?",
+    "(Press Z to interact with objects.\nPress X to cancel.\nPress C to open inventory.)"
+};
+
+static const char *paperDialogue[] = {
+    "A note!",
+    "After the sound disappears, only light can speak...",
+    "It looks like I should watch the light\nwhen the sound is gone.",
+    "What could it mean?\nMaybe it's related to the flashing light in the room?"
+};
+
+static const char *morseTableDialogue[] = {
+    "A Morse code table...?",
+    "What is it for?"
+};
+
+static const char *doorLockedDialogue[] = {
+    "I need to get the information first."
+};
+
+static const char *successDialogue[] = {
+    "A string of gibberish...",
+    "Looks like they are all composed of U, D, L, R.",
+    "What could it mean?\nWhat ever it is, it must be important."
+};
+
+static void StartDialogue(const char **lines, int count, L1DialogueMode mode)
+{
+    dialogueLines = lines;
+    dialogueCount = count;
+    dialogueIndex = 0;
+    dialogueMode = mode;
+    showDialogue = true;
+}
+
+static void FinishDialogue(GameState *state)
+{
+    showDialogue = false;
+
+    switch (dialogueMode) {
+        case L1_DIALOGUE_PAPER:
+            showPaperText = false;
+            break;
+        case L1_DIALOGUE_MORSE_TABLE:
+            showMorseTable = false;
+            break;
+        case L1_DIALOGUE_SUCCESS:
+            showNavigationCommand = false;
+            state->currentScreen = SCREEN_HUB;
+            break;
+        default:
+            break;
+    }
+
+    if (returnToHubAfterDialogue) {
+        returnToHubAfterDialogue = false;
+        state->currentScreen = SCREEN_HUB;
+    }
+
+    dialogueMode = L1_DIALOGUE_START;
+}
+
+static void AdvanceDialogue(GameState *state)
+{
+    if (!IsKeyPressed(KEY_Z)) return;
+
+    dialogueIndex++;
+    if (dialogueIndex >= dialogueCount) {
+        FinishDialogue(state);
+    }
+}
 
 // ---------------------------
-// 初始化遊戲 (原 InitGame)
+// 初始化第一關
 // ---------------------------
 void InitLevel1(void)
 {
@@ -66,8 +155,10 @@ void InitLevel1(void)
 
     showPaperText = false;
     showMorseTable = false;
-    showDialogue = true; // 每次進入第一關都顯示一次教學對話
-    dialogueIndex = 0;
+    showNavigationCommand = false;
+    showDialogue = false;
+    returnToHubAfterDialogue = false;
+    StartDialogue(initialDialogue, sizeof(initialDialogue) / sizeof(initialDialogue[0]), L1_DIALOGUE_START);
 
     inputMode = false;
     gameTimer = 0;
@@ -77,13 +168,16 @@ void InitLevel1(void)
 
     showMorseText = false;
     computerFlashColor = GRAY;
+    computerFlashTargetColor = GRAY;
     computerFlashCount = 0;
+    computerFlashOn = false;
+    flashTimer = 0;
     memset(inputBuffer, 0, sizeof(inputBuffer));
     inputLength = 0;
 }
 
 // ---------------------------
-// 更新玩家移動 (完全保留)
+// 更新玩家移動
 // ---------------------------
 static void UpdatePlayer()
 {
@@ -103,29 +197,27 @@ static void HandleInteraction(GameState *state)
     Rectangle computerRect = {100, 350, 100, 120};
     Rectangle doorRect = {1150, 400, 80, 150};
 
-    //paper & morse table
+    // paper
     if (CheckCollisionRecs(player.rect, paperRect) && !gotPaper) {
         showPaperText = true;
-        AddItem(state, "Paper With Clue"); // 使用main_hub.c提供的 AddItem
+        AddItem(state, "paper with clue"); // 使用main提供的 AddItem
         gotPaper = true;
+        StartDialogue(paperDialogue, sizeof(paperDialogue) / sizeof(paperDialogue[0]), L1_DIALOGUE_PAPER);
+        return;
     }
 
+    // Morse table
     if (CheckCollisionRecs(player.rect, morseRect) && !gotMorseTable) {
         showMorseTable = true;
         AddItem(state, "Morse Code Table");
         gotMorseTable = true;
+        StartDialogue(morseTableDialogue, sizeof(morseTableDialogue) / sizeof(morseTableDialogue[0]), L1_DIALOGUE_MORSE_TABLE);
+        return;
     }
 
     
     if (showDialogue){
-        if (IsKeyPressed(KEY_Z)){
-            showDialogue = false;
-
-            if (dialogueIndex == 0){
-                dialogueIndex++;
-                dialogueText = "URLD? I wonder what that means...";
-            }
-        }
+        AdvanceDialogue(state);
         return;
     }
 
@@ -136,8 +228,10 @@ static void HandleInteraction(GameState *state)
         memset(inputBuffer, 0, sizeof(inputBuffer));
     }
 
+    // door
     if (CheckCollisionRecs(player.rect, doorRect)) {
-        state->currentScreen = SCREEN_HUB; 
+        StartDialogue(doorLockedDialogue, sizeof(doorLockedDialogue) / sizeof(doorLockedDialogue[0]), L1_DIALOGUE_START);
+        returnToHubAfterDialogue = false;
     }
 }
 
@@ -149,6 +243,11 @@ static void HandleInputBox(GameState *state)
     int key = GetCharPressed();
 
     while (key > 0) {
+        if ((key == 'c') || (key == 'C')) {
+            key = GetCharPressed();
+            continue;
+        }
+
         if ((key >= 32) && (key <= 125) && (inputLength < 10)) {
             inputBuffer[inputLength] = (char)key;
             inputLength++;
@@ -163,28 +262,36 @@ static void HandleInputBox(GameState *state)
 
     if (IsKeyPressed(KEY_ENTER)) { ///
         if (strcmp(inputBuffer, "URLD") == 0 || strcmp(inputBuffer, "urld") == 0) {
-            computerFlashColor = GREEN;
+            computerFlashTargetColor = GREEN;
+            computerFlashColor = computerFlashTargetColor;
             computerFlashCount = 2;
+            computerFlashOn = true;
+            flashTimer = 0;
 
             if (!gotNavigationCode) {
                 AddItem(state, "Navigation Command");
                 gotNavigationCode = true;
             }
-            showDialogue = true;
+            showNavigationCommand = true;
+            StartDialogue(successDialogue, sizeof(successDialogue) / sizeof(successDialogue[0]), L1_DIALOGUE_SUCCESS);
+            returnToHubAfterDialogue = true;
             
             // 告訴main_hub.c第一關過了，並把密碼存起來給第三關用
             state->isLevel1Cleared = true;
             strcpy(state->secretSequence, "URLD");
         } else {
-            computerFlashColor = RED;
+            computerFlashTargetColor = RED;
+            computerFlashColor = computerFlashTargetColor;
             computerFlashCount = 2;
+            computerFlashOn = true;
+            flashTimer = 0;
         }
         inputMode = false;
     }
 }
 
 // ---------------------------
-// 閃爍效果
+// 摩斯密碼閃爍
 // ---------------------------
 static void UpdateMorseFlash()
 {
@@ -198,7 +305,7 @@ static void UpdateMorseFlash()
 
         if (morseIndex >= sizeof(morsePattern)/sizeof(morsePattern[0]))
         {
-            morseIndex = 0;   // 循環播放
+            morseIndex = 0; // 循環播放
         }
 
         morseLightOn = !morseLightOn;
@@ -206,7 +313,30 @@ static void UpdateMorseFlash()
 }
 
 // ---------------------------
-// 整合：第一關邏輯總更新 (原 main 迴圈前半段)
+// 電腦閃爍
+// ---------------------------
+static void UpdateComputerFlash()
+{
+    if (computerFlashCount <= 0) return;
+
+    flashTimer += GetFrameTime();
+
+    if (flashTimer >= 0.18f) {
+        flashTimer = 0;
+
+        if (computerFlashOn) {
+            computerFlashColor = GRAY;
+            computerFlashOn = false;
+            computerFlashCount--;
+        } else if (computerFlashCount > 0) {
+            computerFlashColor = computerFlashTargetColor;
+            computerFlashOn = true;
+        }
+    }
+}
+
+// ---------------------------
+// 整合：第一關邏輯總更新
 // ---------------------------
 void UpdateLevel1(GameState *state)
 {
@@ -214,21 +344,43 @@ void UpdateLevel1(GameState *state)
 
     if (state->inventory.opened) return;
 
+    if (showDialogue) { // 這整段不知道要幹嘛
+        AdvanceDialogue(state);
+        UpdateMorseFlash();
+        UpdateComputerFlash();
+        return;
+    }
+
     UpdatePlayer();
 
-    if (IsKeyPressed(KEY_Z)) HandleInteraction(state);
+    bool startInput = false;
+
+    if (!inputMode && IsKeyPressed(KEY_Z)) {
+        HandleInteraction(state);
+        startInput = inputMode;
+    }
+
     if (IsKeyPressed(KEY_X)) {
+        if (showDialogue && returnToHubAfterDialogue) {
+            returnToHubAfterDialogue = false;
+            showDialogue = false;
+            state->currentScreen = SCREEN_HUB;
+            return;
+        }
         showPaperText = false;
         showMorseTable = false;
+        showNavigationCommand = false;
         showDialogue = false;
+        dialogueMode = L1_DIALOGUE_START;
     }
     
     // (已刪除原本的 KEY_C 物品欄邏輯，因為 main_hub.c 已經全權接管了)
 
-    if (inputMode) HandleInputBox(state);
+    if (inputMode && !startInput) HandleInputBox(state);
     if (gameTimer >= 60.0f) showMorseText = true;
 
     UpdateMorseFlash();
+    UpdateComputerFlash();
 }
 
 // ---------------------------
@@ -237,7 +389,7 @@ void UpdateLevel1(GameState *state)
 void DrawPaperText(void)
 {
     DrawRectangle(240, 250, 800, 200, LIGHTGRAY);
-    DrawText("After the sound disappears,\n only light can speak", 340, 330, 30, BLACK);
+    DrawText("After the sound disappears,\nonly light can speak.", 340, 330, 30, BLACK);
 }
 
 // ---------------------------
@@ -256,10 +408,10 @@ void DrawNavigationCommand(void)
 {
     DrawRectangle(240, 170, 800, 470, LIGHTGRAY);
     DrawText("Navigation Command", 310, 220, 30, BLACK);
-    DrawText("U R L D", 310, 310, 35, BLACK);
+    DrawText("UUUU RRR D\nUU RR DDDD LLL D", 310, 310, 35, BLACK);
+    DrawText("U R L D", 310, 500, 50, BLACK);
+    DrawLineEx((Vector2){300, 550}, (Vector2){510, 550}, 5.0f, RED);
 }
-
-
 
 // ---------------------------
 // 繪製對話框
@@ -270,7 +422,9 @@ void DrawDialogue1(void)
 
     DrawRectangleLines(150, 700, 980, 180, WHITE);
 
-    DrawText(dialogueText, 200, 730, 30, WHITE);
+    if (dialogueLines != NULL && dialogueIndex < dialogueCount) {
+        DrawText(dialogueLines[dialogueIndex], 200, 730, 30, WHITE);
+    }
 
     DrawText("[Press Z]", 900, 820, 20, GRAY);
 }
@@ -300,8 +454,11 @@ void DrawLevel1(const GameState *state)
     if (showMorseTable) {
         DrawMorseTable();
     }
+    if (showNavigationCommand) {
+        DrawNavigationCommand();
+    }
     if (showMorseText) {
-        DrawText(".._   ._.   _..   ._..", 350, 50, 30, WHITE);
+        DrawText(".._   ._.   ._..   _..", 350, 50, 30, WHITE); // U R L D
     }
     if (showDialogue){
         DrawDialogue1();

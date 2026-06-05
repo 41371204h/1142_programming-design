@@ -19,7 +19,9 @@ static Rectangle doorRect = {565, 850, 150, 80};
 // UI 狀態
 // ---------------------------
 static bool showPuzzle = false;
+static bool showMap = false;
 static bool showDialogue = false;
+static bool returnToHubAfterDialogue = false;
 
 // ---------------------------
 // 拼圖
@@ -32,8 +34,70 @@ static int cursorY = 0;
 // ---------------------------
 // 對話
 // ---------------------------
-static const char *dialogueText =
-"Looks like a map. This may be useful later.";
+typedef enum {
+    L2_DIALOGUE_NONE,
+    L2_DIALOGUE_COMPLETE
+} L2DialogueMode;
+
+static const char **dialogueLines = NULL;
+static int dialogueCount = 0;
+static int dialogueIndex = 0;
+static L2DialogueMode dialogueMode = L2_DIALOGUE_NONE;
+
+static const char *enterDialogue[] = {
+    "Strange...\nI can't remember the internal structure of\nthe escape zone.",
+    "This won't do,\nI'll have to go to the archives to look for it."
+};
+
+static const char *puzzleOpenDialogue[] = {
+    "These papers are all damaged...",
+    "I need to fix it,\nbut how could I know which piece goes where?"
+};
+
+static const char *levelCompleteDialogue[] = {
+    "That's it!\nIt must be the map of the escape zone!",
+    "I need to hurry up before the air runs out."
+};
+
+static const char *doorLockedDialogue[] = {
+    "I need to find the map first."
+};
+
+static void StartDialogue(const char **lines, int count, L2DialogueMode mode)
+{
+    dialogueLines = lines;
+    dialogueCount = count;
+    dialogueIndex = 0;
+    dialogueMode = mode;
+    showDialogue = true;
+}
+
+static void FinishDialogue(GameState *state)
+{
+    showDialogue = false;
+
+    if (dialogueMode == L2_DIALOGUE_COMPLETE) {
+        showMap = false;
+        state->currentScreen = SCREEN_HUB;
+    }
+
+    if (returnToHubAfterDialogue) {
+        returnToHubAfterDialogue = false;
+        state->currentScreen = SCREEN_HUB;
+    }
+
+    dialogueMode = L2_DIALOGUE_NONE;
+}
+
+static void AdvanceDialogue(GameState *state)
+{
+    if (!IsKeyPressed(KEY_Z)) return;
+
+    dialogueIndex++;
+    if (dialogueIndex >= dialogueCount) {
+        FinishDialogue(state);
+    }
+}
 
 // ---------------------------
 // 初始化拼圖
@@ -78,6 +142,14 @@ bool IsPuzzleSolved(void)
 void InitLevel2(void)
 {
     playerPos = (Vector2){600, 800};
+    showPuzzle = false;
+    showMap = false;
+    showDialogue = false;
+    returnToHubAfterDialogue = false;
+    selectedTile = -1;
+    cursorX = 0;
+    cursorY = 0;
+    StartDialogue(enterDialogue, sizeof(enterDialogue) / sizeof(enterDialogue[0]), L2_DIALOGUE_NONE);
 
     InitPuzzle();
 }
@@ -147,14 +219,12 @@ void UpdatePuzzle(GameState *state)
                 if (IsPuzzleSolved())
                 {
                     showPuzzle = false;
-                    showDialogue = true;
+                    showMap = true;
+                    StartDialogue(levelCompleteDialogue, sizeof(levelCompleteDialogue) / sizeof(levelCompleteDialogue[0]), L2_DIALOGUE_COMPLETE);
 
                     state -> isLevel2Cleared = true;
 
-                    strcpy(state -> inventory.items[state -> inventory.count],
-                    "Completed Map");
-
-                    state -> inventory.count++;
+                    AddItem(state, "Completed Map");
                 }
             }
         }
@@ -176,12 +246,7 @@ void UpdateLevel2(GameState *state)
     // 對話框
     if (showDialogue)
     {
-        if (IsKeyPressed(KEY_Z))
-        {
-            showDialogue = false;
-
-            state -> currentScreen = SCREEN_HUB;
-        }
+        AdvanceDialogue(state);
 
         return;
     }
@@ -206,12 +271,15 @@ void UpdateLevel2(GameState *state)
     if (CheckCollisionRecs(playerRect, paperPile)){
         if (IsKeyPressed(KEY_Z)){
             showPuzzle = true;
+            selectedTile = -1;
+            StartDialogue(puzzleOpenDialogue, sizeof(puzzleOpenDialogue) / sizeof(puzzleOpenDialogue[0]), L2_DIALOGUE_NONE);
         }
     }
     // 與門互動
     if (CheckCollisionRecs(playerRect, doorRect)) {
         if (IsKeyPressed(KEY_Z)){
-            state->currentScreen = SCREEN_HUB;
+            StartDialogue(doorLockedDialogue, sizeof(doorLockedDialogue) / sizeof(doorLockedDialogue[0]), L2_DIALOGUE_NONE);
+            returnToHubAfterDialogue = false;
         }
     }
 }
@@ -257,7 +325,7 @@ void DrawPuzzle(void)
     }
 
     DrawText(
-        "Arrow Keys: Move Cursor | Z: Select | X: Cancel",
+        "Select two puzzle pieces to swap their positions.\nArrow Keys: Move | Z: Select | X: Cancel",
         330,
         650,
         20,
@@ -274,9 +342,22 @@ void DrawDialogue2(void)
 
     DrawRectangleLines(150, 700, 980, 180, WHITE);
 
-    DrawText(dialogueText, 200, 730, 30, WHITE);
+    if (dialogueLines != NULL && dialogueIndex < dialogueCount) {
+        DrawText(dialogueLines[dialogueIndex], 200, 730, 30, WHITE);
+    }
 
     DrawText("[Press Z]", 900, 820, 20, GRAY);
+}
+
+// ---------------------------
+// 繪製完成地圖
+// ---------------------------
+void DrawCompletedMap(void)
+{
+    DrawRectangle(260, 150, 760, 460, LIGHTGRAY);
+    DrawRectangleLines(260, 150, 760, 460, DARKGRAY);
+    DrawText("Completed Map", 330, 210, 35, BLACK); // 標題可以去掉
+    DrawText("Map placeholder", 330, 290, 24, BLACK);
 }
 
 // ---------------------------
@@ -322,6 +403,10 @@ void DrawLevel2(const GameState *state)
 
     if (showPuzzle){
         DrawPuzzle();
+    }
+
+    if (showMap){
+        DrawCompletedMap();
     }
 
     if (showDialogue){

@@ -200,7 +200,7 @@ static void HandleInteraction(GameState *state)
     // paper
     if (CheckCollisionRecs(player.rect, paperRect) && !gotPaper) {
         showPaperText = true;
-        AddItem(state, "paper with clue"); // 使用main提供的 AddItem
+        AddItem(state, "Paper With Clue"); // 使用main提供的 AddItem
         gotPaper = true;
         StartDialogue(paperDialogue, sizeof(paperDialogue) / sizeof(paperDialogue[0]), L1_DIALOGUE_PAPER);
         return;

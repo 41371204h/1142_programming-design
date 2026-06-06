@@ -15,6 +15,7 @@ static Rectangle termLevel3 = { 880, 450, 250, 180 }; // terminal for Level 3 (m
 
 // 結局畫面的專屬計時器
 static float endingTimer = 0.0f;
+static bool showEndingStory = true;
 
 static bool showHubIntro = true; // 預設為 true，一開遊戲就會觸發
 static int hubDialogueIndex = 0;
@@ -113,7 +114,13 @@ int main(void) {
                 UpdateLevel3(&state); // 執行第三關
                 break;
             case SCREEN_ENDING:
-                endingTimer += GetFrameTime();
+                if (showEndingStory) {
+                    endingTimer += GetFrameTime();
+                    
+                    if (IsKeyPressed(KEY_X)) {
+                        showEndingStory = false; // 關閉故事，進入 The End
+                    }
+                }
                 break;
             }
 
@@ -137,12 +144,21 @@ int main(void) {
                 DrawLevel3(&state); 
                 break;
             case SCREEN_ENDING:
-                if (endingTimer < 10.0f) { /// TODO
-                    // 前 10 秒：顯示故事頁面
-                    DrawText("The central escape pod activates...", 250, 400, 35, LIGHTGRAY);
-                    DrawText("Leaving the deep sea station behind in the dark abyss.", 180, 480, 35, LIGHTGRAY);
+                if (showEndingStory) {
+                    const char *endingText = "Permission granted\nThe central escape pod activa%]K:(...";
+                    
+                    // 設定每秒顯示 15 個字母的打字機特效
+                    int charsToShow = (int)(endingTimer * 15.0f); 
+                    
+                    // 畫出故事文字
+                    DrawTextEx(state.storyFont, TextSubtext(endingText, 0, charsToShow), 
+                               (Vector2){180, 400}, 56, 2, WHITE);
+                               
+                    // 右下角提示玩家按 X 鍵
+                    DrawText("[ Press X to Continue ]", SCREEN_WIDTH / 2 - 130, SCREEN_HEIGHT - 100, 20, LIGHTGRAY);
+                    
                 } else {
-                    // 10 秒後：畫面變黑，中央顯示 The end
+                    // 玩家按 X 關閉故事後：顯示 The end
                     DrawText("The end", SCREEN_WIDTH / 2 - 170, SCREEN_HEIGHT / 2 - 40, 80, WHITE);
                     DrawText("[ Press ESC to escape this game ]", SCREEN_WIDTH / 2 - 190, SCREEN_HEIGHT / 2 + 80, 23, LIGHTGRAY);
                 }
@@ -190,6 +206,7 @@ void UpdateHub(GameState *state) {
         if (IsKeyPressed(KEY_SPACE)) {
             state->currentScreen = SCREEN_ENDING;
             endingTimer = 0.0f;
+            showEndingStory = true;
         }
     }
     // --- 自動選取與進入關卡邏輯 ---

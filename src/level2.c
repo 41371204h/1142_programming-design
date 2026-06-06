@@ -338,14 +338,14 @@ void DrawPuzzle(void)
 // ---------------------------
 // 繪製對話框
 // ---------------------------
-void DrawDialogue2(void)
+void DrawDialogue2(const GameState *state)
 {
     DrawRectangle(150, 700, 980, 180, BLACK);
 
     DrawRectangleLines(150, 700, 980, 180, WHITE);
 
     if (dialogueLines != NULL && dialogueIndex < dialogueCount) {
-        DrawText(dialogueLines[dialogueIndex], 200, 730, 30, WHITE);
+        DrawTextEx(state->storyFont, dialogueLines[dialogueIndex], (Vector2){200, 730}, 32, 1, WHITE);
     }
 
     DrawText("[Press Z]", 900, 820, 20, GRAY);
@@ -412,6 +412,6 @@ void DrawLevel2(const GameState *state)
     }
 
     if (showDialogue){
-        DrawDialogue2();
+        DrawDialogue2(state);
     }
 }

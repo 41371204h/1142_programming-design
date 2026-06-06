@@ -416,14 +416,14 @@ void DrawNavigationCommand(void)
 // ---------------------------
 // 繪製對話框
 // ---------------------------
-void DrawDialogue1(void)
+void DrawDialogue1(const GameState *state)
 {
     DrawRectangle(150, 700, 980, 180, BLACK);
 
     DrawRectangleLines(150, 700, 980, 180, WHITE);
 
     if (dialogueLines != NULL && dialogueIndex < dialogueCount) {
-        DrawText(dialogueLines[dialogueIndex], 200, 730, 30, WHITE);
+        DrawTextEx(state->storyFont, dialogueLines[dialogueIndex], (Vector2){200, 730}, 32, 1, WHITE);
     }
 
     DrawText("[Press Z]", 900, 820, 20, GRAY);
@@ -461,7 +461,7 @@ void DrawLevel1(const GameState *state)
         DrawText(".._   ._.   ._..   _..", 350, 50, 30, WHITE); // U R L D
     }
     if (showDialogue){
-        DrawDialogue1();
+        DrawDialogue1(state);
     }
     if (inputMode) {
         DrawRectangle(300, 800, 600, 80, WHITE);

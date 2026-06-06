@@ -156,7 +156,7 @@ void UpdateLevel3(GameState *state) {
                         // 密碼正確！過關
                         showLockUI = false;   // 關閉密碼鎖的 UI
                         showItemPopup = true; // 開啟獲得道具視窗
-                        AddItem(state, "Key Card");
+                        AddItem(state, "Card Key");
                         // ResetLevel3(state); // 為下一次遊玩重置
                     } else {
                         // 密碼錯誤，清空重打 (但不中斷遊戲與時間)
@@ -321,8 +321,8 @@ void DrawLevel3(const GameState *state) {
         DrawRectangleLinesEx((Rectangle){boxX, boxY, boxWidth, boxHeight}, 3.0f, WHITE);
         
         DrawText("SYSTEM UNLOCKED", boxX + 90, boxY + 30, 35, GREEN);
-        DrawText("Obtained: Key Card", boxX + 110, boxY + 230, 22, WHITE);
-        DrawText("[ Press SPACE to Return to Main Hub ]", boxX + 60, boxY + 300, 18, LIGHTGRAY);
+        DrawText("Obtained: Card Key", boxX + 150, boxY + 230, 22, WHITE);
+        DrawText("[ Press SPACE to Return to Main Hub ]", boxX + 90, boxY + 300, 18, LIGHTGRAY);
 
         Rectangle sourceRec = { 0.0f, 0.0f, (float)state->keySprite.width, (float)state->keySprite.height };
         Rectangle destRec = { boxX + (boxWidth - 100) / 2, boxY + 100, 100, 100 };

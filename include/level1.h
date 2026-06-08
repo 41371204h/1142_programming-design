@@ -13,7 +13,7 @@ void UpdateLevel1(GameState *state);
 void DrawLevel1(const GameState *state);
 
 void DrawPaperText(void);
-void DrawMorseTable(void);
+void DrawMorseTable(const GameState *state);
 void DrawNavigationCommand(void);
 
 #endif // LEVEL1_H

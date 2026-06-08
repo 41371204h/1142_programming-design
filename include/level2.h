@@ -6,6 +6,6 @@
 void InitLevel2(void);
 void UpdateLevel2(GameState *state);
 void DrawLevel2(const GameState *state);
-void DrawCompletedMap(void);
+void DrawCompletedMap(const GameState *state);
 
 #endif

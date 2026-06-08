@@ -41,6 +41,19 @@ typedef struct {
     Texture2D wallToolSprite;
     Texture2D wallDeviceSprite;
     Texture2D keySprite;
+    Texture2D paperPileSprite;      
+    Texture2D puzzleParts[9];
+    Texture2D doorSprite;
+    Texture2D mapSprite;
+    Texture2D letterSprite;    // letter.png
+    Texture2D bookSprite;      // book.png
+    Texture2D codeSprite;      // code.png
+    Texture2D deviceSprite;    // device01.png
+    Texture2D hubTerminalSprite;
+    Texture2D bgHub;
+    Texture2D bgLevel1;
+    Texture2D bgLevel2;
+    Texture2D bgLevel3;
     Font storyFont;
 } GameState;
 

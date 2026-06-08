@@ -33,7 +33,7 @@ void UpdateHub(GameState *state);
 void DrawHub(GameState *state);
 void UpdateGlobalInventory(GameState *state);
 void DrawGlobalInventory(const GameState *state); // --- 全域物品欄繪製宣告 ---
-void DrawInventoryItemDetail(const char *itemName);
+void DrawInventoryItemDetail(const char *itemName, const GameState *state);
 
 // --- 跨關卡共用的 AddItem 實作 ---
 void AddItem(GameState *state, const char *itemName) {
@@ -69,6 +69,27 @@ int main(void) {
     state.wallDeviceSprite = LoadTexture("assets/wall_device.png");
     // load the key card for level 3
     state.keySprite = LoadTexture("assets/key.png");
+    state.paperPileSprite = LoadTexture("assets/paperPile.png");
+    state.puzzleParts[0] = LoadTexture("assets/part_1.png");
+    state.puzzleParts[1] = LoadTexture("assets/part_2.png");
+    state.puzzleParts[2] = LoadTexture("assets/part_3.png");
+    state.puzzleParts[3] = LoadTexture("assets/part_4.png");
+    state.puzzleParts[4] = LoadTexture("assets/part_5.png");
+    state.puzzleParts[5] = LoadTexture("assets/part_6.png");
+    state.puzzleParts[6] = LoadTexture("assets/part_7.png");
+    state.puzzleParts[7] = LoadTexture("assets/part_8.png");
+    state.puzzleParts[8] = LoadTexture("assets/part_9.png");
+    state.doorSprite = LoadTexture("assets/door.png");
+    state.mapSprite = LoadTexture("assets/map.png");
+    state.letterSprite = LoadTexture("assets/letter.png");
+    state.bookSprite   = LoadTexture("assets/book.png");
+    state.codeSprite   = LoadTexture("assets/code.png");
+    state.deviceSprite = LoadTexture("assets/device01.png");
+    state.hubTerminalSprite = LoadTexture("assets/computer.png");
+    state.bgHub    = LoadTexture("assets/background0.png"); // 主畫面
+    state.bgLevel1 = LoadTexture("assets/background1.png"); // 第一關
+    state.bgLevel2 = LoadTexture("assets/background2.png"); // 第二關
+    state.bgLevel3 = LoadTexture("assets/background3.png"); // 第三關
 
     // 載入故事頁面用的字體：Ubuntu Sans Mono 28
     state.storyFont = LoadFontEx("assets/story_font.ttf", 28, NULL, 0);
@@ -104,14 +125,13 @@ int main(void) {
                 UpdateHub(&state);
                 break;
             case SCREEN_LEVEL1:
-                // --- 串接第一關邏輯 ---
                 UpdateLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
                 UpdateLevel2(&state);
                 break;
             case SCREEN_LEVEL3:
-                UpdateLevel3(&state); // 執行第三關
+                UpdateLevel3(&state); 
                 break;
             case SCREEN_ENDING:
                 if (showEndingStory) {
@@ -122,43 +142,65 @@ int main(void) {
                     }
                 }
                 break;
-            }
+        }
 
         // --- B. 畫面繪製層 (Draw) ---
         BeginDrawing();
         ClearBackground(BLACK); // 基礎底色
 
+        // 💡 1. 宣告區域貼圖變數，用來指向當前畫面的背景
+        Texture2D currentBg = { 0 };
+
+        // 💡 2. 根據現在的畫面狀態，指派正確的背景圖片
         switch (state.currentScreen) {
             case SCREEN_HUB:
-                DrawHub(&state);
+                currentBg = state.bgHub;
                 break;
             case SCREEN_LEVEL1:
-                // 將 &state 傳入第一關的繪製函式中
+                currentBg = state.bgLevel1;
+                break;
+            case SCREEN_LEVEL2:
+                currentBg = state.bgLevel2;
+                break;
+            case SCREEN_LEVEL3:
+                currentBg = state.bgLevel3;
+                break;
+            case SCREEN_ENDING:
+                currentBg = state.bgHub; // 結局畫面沿用主畫面背景
+                break;
+        }
+
+        // 💡 3. 安全防護：確認圖片有效 (id > 0) 才進行動態滿版縮放繪製
+        if (currentBg.id > 0) {
+            Rectangle sourceRec = { 0.0f, 0.0f, (float)currentBg.width, (float)currentBg.height };
+            Rectangle destRec = { 0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight() };
+            DrawTexturePro(currentBg, sourceRec, destRec, (Vector2){ 0, 0 }, 0.0f, WHITE);
+        }
+
+        // 💡 4. 繪製各關卡原本的物件與 UI 元件
+        switch (state.currentScreen) {
+            case SCREEN_HUB:
+                DrawHub(&state); 
+                break;
+            case SCREEN_LEVEL1:
                 DrawLevel1(&state); 
                 break;
             case SCREEN_LEVEL2:
                 DrawLevel2(&state);
                 break;
             case SCREEN_LEVEL3:
-                // 將 &state 傳入第三關的繪製函式中
                 DrawLevel3(&state); 
                 break;
             case SCREEN_ENDING:
                 if (showEndingStory) {
                     const char *endingText = "Permission granted\nThe central escape pod activa%]K:(...";
-                    
-                    // 設定每秒顯示 15 個字母的打字機特效
                     int charsToShow = (int)(endingTimer * 15.0f); 
                     
-                    // 畫出故事文字
                     DrawTextEx(state.storyFont, TextSubtext(endingText, 0, charsToShow), 
                                (Vector2){180, 400}, 56, 2, WHITE);
                                
-                    // 右下角提示玩家按 X 鍵
                     DrawText("[ Press X to Continue ]", SCREEN_WIDTH / 2 - 130, SCREEN_HEIGHT - 100, 20, LIGHTGRAY);
-                    
                 } else {
-                    // 玩家按 X 關閉故事後：顯示 The end
                     DrawText("The end", SCREEN_WIDTH / 2 - 170, SCREEN_HEIGHT / 2 - 40, 80, WHITE);
                     DrawText("[ Press ESC to escape this game ]", SCREEN_WIDTH / 2 - 190, SCREEN_HEIGHT / 2 + 80, 23, LIGHTGRAY);
                 }
@@ -178,7 +220,23 @@ int main(void) {
     UnloadTexture(state.pathSprite);
     UnloadTexture(state.wallSprite);
     UnloadTexture(state.wallToolSprite);
-    UnloadTexture(state.wallDeviceSprite);      
+    UnloadTexture(state.wallDeviceSprite);  
+    UnloadTexture(state.hubTerminalSprite); 
+    UnloadTexture(state.keySprite);
+    UnloadTexture(state.paperPileSprite);
+    for (int i = 0; i < 9; i++) {
+        UnloadTexture(state.puzzleParts[i]);
+    }
+    UnloadTexture(state.doorSprite);
+    UnloadTexture(state.mapSprite);
+    UnloadTexture(state.letterSprite);
+    UnloadTexture(state.bookSprite);
+    UnloadTexture(state.codeSprite);
+    UnloadTexture(state.deviceSprite);
+    UnloadTexture(state.bgHub);
+    UnloadTexture(state.bgLevel1);
+    UnloadTexture(state.bgLevel2);
+    UnloadTexture(state.bgLevel3);
     UnloadFont(state.storyFont);
 
     // 4. 清理並關閉
@@ -190,18 +248,15 @@ int main(void) {
 // 主畫面 HUB 的邏輯更新
 // --------------------------------------------------------
 void UpdateHub(GameState *state) {
-
     if (showHubIntro) {
         if (IsKeyPressed(KEY_Z)) {
             hubDialogueIndex++;
-            // 當對話全部看完時，關閉開場白
             if (hubDialogueIndex >= hubDialogueCount) {
                 showHubIntro = false; 
             }
         }
-        return; // 只要還在看故事，就直接 return，不執行下方的任何操作！
+        return; 
     }
-    // 在 Update 層處理按鍵，就不會跟同一個幀 (Frame) 的其他畫面衝突
     if (state->isLevel1Cleared && state->isLevel2Cleared && state->isLevel3Cleared) {
         if (IsKeyPressed(KEY_SPACE)) {
             state->currentScreen = SCREEN_ENDING;
@@ -209,20 +264,16 @@ void UpdateHub(GameState *state) {
             showEndingStory = true;
         }
     }
-    // --- 自動選取與進入關卡邏輯 ---
     if (IsKeyPressed(KEY_ENTER)) {
         if (!state->isLevel1Cleared) {
-            // 第一關還沒過，按 Enter 進入第一關
             InitLevel1(); 
             state->currentScreen = SCREEN_LEVEL1;
         } 
         else if (!state->isLevel2Cleared) {
-            // 第一關過了，第二關還沒過，按 Enter 進入第二關
             InitLevel2();
             state->currentScreen = SCREEN_LEVEL2;
         } 
         else if (!state->isLevel3Cleared) {
-            // 前兩關都過了，第三關還沒過，按 Enter 進入第三關
             state->currentScreen = SCREEN_LEVEL3;
         }
     }
@@ -233,62 +284,47 @@ void UpdateHub(GameState *state) {
 // --------------------------------------------------------
 void DrawHub(GameState *state) {
     DrawText("Main Hub", 500, 150, 56, WHITE);
-    DrawText("Press ENTER to repair the highlighted system", 320, 230, 30, LIGHTGRAY);
+    DrawText("Press ENTER to repair the highlighted system", 320, 250, 30, LIGHTGRAY);
 
-    // 判斷目前玩家可以遊玩的關卡是哪一關
     int activeLevel = 1;
     if (state->isLevel1Cleared) activeLevel = 2;
     if (state->isLevel2Cleared) activeLevel = 3;
-    if (state->isLevel3Cleared) activeLevel = 4; // 全通關
+    if (state->isLevel3Cleared) activeLevel = 4; 
 
-    // ---- 繪製第一台終端機 (通訊) ----
-    Color color1 = state->isLevel1Cleared ? GREEN : BLUE;
-    DrawRectangleRec(termLevel1, color1);
-    
-    if (activeLevel == 1) DrawRectangleLinesEx(termLevel1, 8.0f, GREEN);
-    else DrawRectangleLinesEx(termLevel1, 3.0f, WHITE);
-    
-    DrawText("Communications Room", termLevel1.x - 20, termLevel1.y - 50, 28, WHITE);
-    DrawText(state->isLevel1Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel1.x + 50, termLevel1.y + 210, 20, state->isLevel1Cleared ? LIME : YELLOW);
+    Rectangle srcRec = { 0.0f, 0.0f, (float)state->hubTerminalSprite.width, (float)state->hubTerminalSprite.height };
 
+    // ---- 1. 第一台終端機 ----
+    Color tint1 = (activeLevel == 1) ? WHITE : GRAY; 
+    DrawTexturePro(state->hubTerminalSprite, srcRec, termLevel1, (Vector2){0, 0}, 0.0f, tint1);
+    DrawText("Communications Room", termLevel1.x + 10, termLevel1.y - 45, 28, WHITE);
+    DrawText(state->isLevel1Cleared ? "[ Repaired ]" : "[ To be repaired ]", 
+             termLevel1.x + 50, termLevel1.y + termLevel1.height + 20, 
+             20, state->isLevel1Cleared ? LIME : YELLOW);
 
-    // ---- 繪製第二台終端機 (維修) ----
-    Color color2;
-    if (!state->isLevel1Cleared) color2 = DARKGRAY; 
-    else color2 = state->isLevel2Cleared ? GREEN : BLUE;
-    
-    DrawRectangleRec(termLevel2, color2);
-    
-    if (activeLevel == 2) DrawRectangleLinesEx(termLevel2, 8.0f, GREEN);
-    else DrawRectangleLinesEx(termLevel2, 3.0f, WHITE);
-
-    DrawText("Archive Room", termLevel2.x + 30, termLevel2.y - 50, 28, state->isLevel1Cleared ? WHITE : GRAY);
+    // ---- 2. 第二台終端機 ----
+    Color tint2 = (!state->isLevel1Cleared) ? Fade(WHITE, 0.3f) : ((activeLevel == 2) ? WHITE : GRAY);
+    DrawTexturePro(state->hubTerminalSprite, srcRec, termLevel2, (Vector2){0, 0}, 0.0f, tint2);
+    Color textTitleColor2 = state->isLevel1Cleared ? WHITE : Fade(WHITE, 0.3f);
+    DrawText("Archive Room", termLevel2.x + 60, termLevel2.y - 45, 28, textTitleColor2);
     if (!state->isLevel1Cleared) {
-        DrawText("[ System offline ]", termLevel2.x + 40, termLevel2.y + 210, 20, RED);
+        DrawText("[ System offline ]", termLevel2.x + 50, termLevel2.y + termLevel2.height + 20, 20, Fade(RED, 0.5f));
     } else {
-        DrawText(state->isLevel2Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel2.x + 50, termLevel2.y + 210, 20, state->isLevel2Cleared ? LIME : YELLOW);
+        DrawText(state->isLevel2Cleared ? "[ Repaired ]" : "[ To be repaired ]", 
+                 termLevel2.x + 50, termLevel2.y + termLevel2.height + 20, 20, state->isLevel2Cleared ? LIME : YELLOW);
     }
 
-
-    // ---- 繪製第三台終端機 (動力核心) ----
-    Color color3;
-    if (!state->isLevel2Cleared) color3 = DARKGRAY; 
-    else color3 = state->isLevel3Cleared ? GREEN : BLUE;
-
-    DrawRectangleRec(termLevel3, color3);
-    
-    if (activeLevel == 3) DrawRectangleLinesEx(termLevel3, 8.0f, GREEN);
-    else DrawRectangleLinesEx(termLevel3, 3.0f, WHITE);
-
-    DrawText("Escape Pod", termLevel3.x + 40, termLevel3.y - 50, 28, state->isLevel2Cleared ? WHITE : GRAY);
+    // ---- 3. 第三台終端機 ----
+    Color tint3 = (!state->isLevel2Cleared) ? Fade(WHITE, 0.3f) : ((activeLevel == 3) ? WHITE : GRAY);
+    DrawTexturePro(state->hubTerminalSprite, srcRec, termLevel3, (Vector2){0, 0}, 0.0f, tint3);
+    Color textTitleColor3 = state->isLevel2Cleared ? WHITE : Fade(WHITE, 0.3f);
+    DrawText("Escape Pod", termLevel3.x + 70, termLevel3.y - 45, 28, textTitleColor3);
     if (!state->isLevel2Cleared) {
-        DrawText("[ Permission denied ]", termLevel3.x + 30, termLevel3.y + 210, 20, RED);
+        DrawText("[ Permission denied ]", termLevel3.x + 40, termLevel3.y + termLevel3.height + 20, 20, Fade(RED, 0.5f));
     } else {
-        DrawText(state->isLevel3Cleared ? "[ Repaired ]" : "[ To be repaired ]", termLevel3.x + 50, termLevel3.y + 210, 20, state->isLevel3Cleared ? LIME : YELLOW);
+        DrawText(state->isLevel3Cleared ? "[ Repaired ]" : "[ To be repaired ]", 
+                 termLevel3.x + 50, termLevel3.y + termLevel3.height + 20, 20, state->isLevel3Cleared ? LIME : YELLOW);
     }
 
-
-    // ---- 全通關結局條件 ----
     if (state->isLevel1Cleared && state->isLevel2Cleared && state->isLevel3Cleared) {
         DrawRectangle(0, 820, SCREEN_WIDTH, 140, RED);
         DrawText("All systems have been repaired! The escape pod has been unlocked!", 100, 850, 30, WHITE);
@@ -296,74 +332,51 @@ void DrawHub(GameState *state) {
     }
 
     if (showHubIntro) {
-        // 畫一個半透明黑底，讓後面的終端機稍微變暗，凸顯對話框
-        DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.6f));
-
-        // 畫對話框底色與白框 (與前幾關的座標一致)
+        DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, Fade(BLACK, 0.5f)); 
         DrawRectangle(150, 700, 980, 180, BLACK);
         DrawRectangleLines(150, 700, 980, 180, WHITE);
-
-        // 使用你下載的 Ubuntu Sans Mono 故事字體
         if (hubDialogueIndex < hubDialogueCount) {
             DrawTextEx(state->storyFont, hubIntroDialogue[hubDialogueIndex], (Vector2){200, 730}, 32, 1, WHITE);
         }
-
-        // 提示玩家按 Z 繼續
         DrawText("[Press Z to Continue]", 850, 820, 20, GRAY);
     }
-
 }
 
-// --- 全域物品欄邏輯更新 ---
 void UpdateGlobalInventory(GameState *state) {
-    // 如果目前正在查看物品詳細內容
     if (state->inventory.viewingDetail) {
-        // 加入 IsKeyPressed(KEY_Z)
         if (IsKeyPressed(KEY_Z) || IsKeyPressed(KEY_X)) {
-            state->inventory.viewingDetail = false; // 縮回放大前的狀態
+            state->inventory.viewingDetail = false; 
         }
-        return; // 確保在詳細畫面時，不會執行到下方的上下鍵和開啟邏輯
+        return; 
     }
-
-    // --- 物品欄開啟時，攔截上下鍵操作 ---
     if (IsKeyPressed(KEY_UP) && state->inventory.selected > 0) {
         state->inventory.selected--;
     }
     if (IsKeyPressed(KEY_DOWN) && state->inventory.selected < state->inventory.count - 1) {
         state->inventory.selected++;
     }
-
-    // 按 Z 放大查看物品
     if (IsKeyPressed(KEY_Z) && state->inventory.count > 0) {
         state->inventory.viewingDetail = true;
     }
 }
 
-// --- 全域物品詳細內容繪製 ---
-void DrawInventoryItemDetail(const char *itemName) {
-    //DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
-    //DrawRectangleLines(240, 170, 800, 470, WHITE);
-
-    //在這裡加各個物品的繪製程式
+void DrawInventoryItemDetail(const char *itemName, const GameState *state) { 
     if (strcmp(itemName, "Paper With Clue") == 0) {
         DrawPaperText();
     } else if (strcmp(itemName, "Morse Code Table") == 0) {
-        DrawMorseTable();
+        DrawMorseTable(state);
     } else if (strcmp(itemName, "Navigation Command") == 0) {
         DrawNavigationCommand();
     } else if (strcmp(itemName, "Completed Map") == 0) {
-        DrawCompletedMap();
+        DrawCompletedMap(state); 
     } else {
         DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
         DrawRectangleLines(240, 170, 800, 470, WHITE);
         DrawText(itemName, 310, 220, 30, BLACK);
         DrawText("No detail available.", 310, 310, 25, DARKGRAY);
     }
-
-    //DrawText("[ Press X to Back ]", 760, 590, 18, DARKGRAY);
 }
 
-// --- 全域物品欄介面繪製 ---
 void DrawGlobalInventory(const GameState *state) {
     DrawRectangle(140, 700, 1000, 220, Fade(DARKGRAY, 0.9f));
     DrawRectangleLines(140, 700, 1000, 220, WHITE);
@@ -373,13 +386,10 @@ void DrawGlobalInventory(const GameState *state) {
         DrawText("Empty...", 520, 800, 24, GRAY);
     } else {
         for (int i = 0; i < state->inventory.count; i++) {
-            // 每 4 個道具換一欄
             int col = i / 4;
             int row = i % 4;
-            // 動態計算 X 與 Y 座標
-            int currentX = 230 + (col * 400); // 如果是第二欄 (col=1)，X 座標就向右平移 400 像素
-            int currentY = 755 + (row * 35);  // Y 座標只根據 row 來往下疊加
-            Color color = (i == state->inventory.selected) ? YELLOW : WHITE;
+            int currentX = 230 + (col * 400); 
+            int currentY = 755 + (row * 35);  
             
             if (i == state->inventory.selected) {
                 DrawText("> ", currentX - 30, currentY, 25, YELLOW);
@@ -389,11 +399,10 @@ void DrawGlobalInventory(const GameState *state) {
             }
         }
     }
-    // 將原本的提示文字改成這樣，讓玩家知道 Z 鍵可以切換放大/縮小
     DrawText("[ Z: View / Close ]", 740, 880, 18, GRAY);
     DrawText("[ Press C to Close ]", 920, 880, 18, GRAY);
 
     if (state->inventory.viewingDetail && state->inventory.count > 0) {
-        DrawInventoryItemDetail(state->inventory.items[state->inventory.selected]);
+        DrawInventoryItemDetail(state->inventory.items[state->inventory.selected], state);
     }
 }

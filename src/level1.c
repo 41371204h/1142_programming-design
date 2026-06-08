@@ -140,6 +140,11 @@ static void AdvanceDialogue(GameState *state)
     }
 }
 
+static void ClearPendingTextInput(void)
+{
+    while (GetCharPressed() > 0) {
+    }
+}
 // ---------------------------
 // 初始化第一關
 // ---------------------------
@@ -226,6 +231,7 @@ static void HandleInteraction(GameState *state)
         inputMode = true;
         inputLength = 0;
         memset(inputBuffer, 0, sizeof(inputBuffer));
+        ClearPendingTextInput();
     }
 
     // door

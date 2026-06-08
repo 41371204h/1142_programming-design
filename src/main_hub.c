@@ -309,7 +309,7 @@ void DrawHub(GameState *state) {
         }
 
         // 提示玩家按 Z 繼續
-        DrawText("[Press Z]", 900, 820, 20, GRAY);
+        DrawText("[Press Z to Continue]", 850, 820, 20, GRAY);
     }
 
 }

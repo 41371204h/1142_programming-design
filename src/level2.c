@@ -348,7 +348,7 @@ void DrawDialogue2(const GameState *state)
         DrawTextEx(state->storyFont, dialogueLines[dialogueIndex], (Vector2){200, 730}, 32, 1, WHITE);
     }
 
-    DrawText("[Press Z]", 900, 820, 20, GRAY);
+    DrawText("[Press Z to Continue]", 850, 820, 20, GRAY);
 }
 
 // ---------------------------

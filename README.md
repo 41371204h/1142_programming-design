@@ -1,7 +1,6 @@
-# Under The Sea
+# Zero Depth
 A narrative-driven **mystery puzzle game** built from scratch using the `raylib` library.
 ## 📖 The Story
-
 
 ## 🎮 Key Features
 

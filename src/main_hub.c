@@ -20,11 +20,11 @@ static bool showEndingStory = true;
 static bool showHubIntro = true; // 預設為 true，一開遊戲就會觸發
 static int hubDialogueIndex = 0;
 static const char *hubIntroDialogue[] = {
-    "Ughh... My head hurts...",
-    "Elara? Joseph? Hello??? Where did everybody go...?",
-    "Wait, multiple systems offline?\nAnd worse, there's oxygen leakage.",
+    "Ugh... My head hurts...",
+    "Elara? Joseph? Hello???\nWhere did everybody go ...?",
+    "Wait, multiple systems offline?\nAnd worse -- we've got an oxygen leak.",
     "There's no time to fix the whole facility.\nI have to reboot the escape system.",
-    "If I can repair the three major systems,\nI can unlock the escape pod before I suffocate."
+    "If I can repair the three main systems,\nI can unlock the escape pod before I suffocate."
 };
 static int hubDialogueCount = sizeof(hubIntroDialogue) / sizeof(hubIntroDialogue[0]);
 
@@ -233,7 +233,7 @@ void UpdateHub(GameState *state) {
 // --------------------------------------------------------
 void DrawHub(GameState *state) {
     DrawText("Main Hub", 500, 150, 56, WHITE);
-    DrawText("Press ENTER to repair the highlighted system", 410, 230, 20, LIGHTGRAY);
+    DrawText("Press ENTER to repair the highlighted system", 320, 230, 30, LIGHTGRAY);
 
     // 判斷目前玩家可以遊玩的關卡是哪一關
     int activeLevel = 1;
@@ -373,14 +373,19 @@ void DrawGlobalInventory(const GameState *state) {
         DrawText("Empty...", 520, 800, 24, GRAY);
     } else {
         for (int i = 0; i < state->inventory.count; i++) {
+            // 每 4 個道具換一欄
+            int col = i / 4;
+            int row = i % 4;
+            // 動態計算 X 與 Y 座標
+            int currentX = 230 + (col * 400); // 如果是第二欄 (col=1)，X 座標就向右平移 400 像素
+            int currentY = 755 + (row * 35);  // Y 座標只根據 row 來往下疊加
             Color color = (i == state->inventory.selected) ? YELLOW : WHITE;
-            int currentY = 755 + i * 35;
             
             if (i == state->inventory.selected) {
-                DrawText("> ", 200, currentY, 25, YELLOW);
-                DrawText(state->inventory.items[i], 230, currentY, 25, YELLOW);
+                DrawText("> ", currentX - 30, currentY, 25, YELLOW);
+                DrawText(state->inventory.items[i], currentX, currentY, 25, YELLOW);
             } else {
-                DrawText(state->inventory.items[i], 230, currentY, 25, WHITE);
+                DrawText(state->inventory.items[i], currentX, currentY, 25, WHITE);
             }
         }
     }

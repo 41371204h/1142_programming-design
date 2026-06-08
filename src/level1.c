@@ -249,7 +249,7 @@ static void HandleInputBox(GameState *state)
     int key = GetCharPressed();
 
     while (key > 0) {
-        if ((key == 'c') || (key == 'C')) {
+        if ((key == 'c') || (key == 'C') || (key == 'z') || (key == 'Z')) {
             key = GetCharPressed();
             continue;
         }

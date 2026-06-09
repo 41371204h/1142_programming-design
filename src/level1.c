@@ -87,7 +87,7 @@ static const char *morseTableDialogue[] = {
     "What is it for?"
 };
 
-// 💡 恢復：門被鎖住的對話內容
+// 💡 門被鎖住的對話內容
 static const char *doorLockedDialogue[] = {
     "I need to get the information first."
 };
@@ -126,7 +126,7 @@ static void FinishDialogue(GameState *state)
             break;
     }
 
-    // 💡 恢復：看完對話後切換畫面的判斷
+    // 看完對話後切換畫面的判斷
     if (returnToHubAfterDialogue) {
         returnToHubAfterDialogue = false;
         state->currentScreen = SCREEN_HUB;
@@ -163,7 +163,7 @@ void InitLevel1(void)
     showMorseTable = false;
     showNavigationCommand = false;
     showDialogue = false;
-    returnToHubAfterDialogue = false; // 💡 恢復初始化
+    returnToHubAfterDialogue = false;
     StartDialogue(initialDialogue, sizeof(initialDialogue) / sizeof(initialDialogue[0]), L1_DIALOGUE_START);
 
     inputMode = false;
@@ -197,10 +197,34 @@ static void UpdatePlayer()
 
 static void HandleInteraction(GameState *state)
 {
-    Rectangle paperRect = {530, 360, 150, 100};      
+    Rectangle paperRect = {430, 360, 150, 100};      
     Rectangle morseRect = {850, 650, 200, 100};       
     Rectangle computerRect = {180, 350, 120, 140};  
     Rectangle doorRect = {1080, 375, 200, 200};     
+    
+    // 💡 物品欄碰撞設定
+    Rectangle fakeKeyRect = { 80, 600, 50, 50 };
+    Rectangle fakeComp1Rect = { 350, 655, 270, 180 }; 
+    // 💡 假電腦移到更左邊的碰撞區域同步修正（X 從 700 改為 630）
+    Rectangle fakeComp2Rect = { 630, 310, 150, 150 }; 
+
+    if (CheckCollisionRecs(player.rect, fakeKeyRect)) {
+        static const char *keyText[] = { "A simple key.", "This doesn't work for the electronic lock." };
+        StartDialogue(keyText, 2, L1_DIALOGUE_START);
+        return;
+    }
+
+    if (CheckCollisionRecs(player.rect, fakeComp1Rect)) {
+        static const char *compText1[] = { "This terminal seems to have been shut down a long time ago.", "There is no reaction." };
+        StartDialogue(compText1, 2, L1_DIALOGUE_START);
+        return;
+    }
+
+    if (CheckCollisionRecs(player.rect, fakeComp2Rect)) {
+        static const char *compText2[] = { "This is also a communication device.", "But it's completely dead." };
+        StartDialogue(compText2, 2, L1_DIALOGUE_START);
+        return;
+    }
 
     if (CheckCollisionRecs(player.rect, paperRect) && !gotPaper) {
         showPaperText = true;
@@ -361,6 +385,7 @@ void UpdateLevel1(GameState *state)
         showNavigationCommand = false;
         showDialogue = false;
         dialogueMode = L1_DIALOGUE_START;
+        inputMode = false; 
     }
     
     if (inputMode && !startInput) HandleInputBox(state);
@@ -413,26 +438,55 @@ void DrawDialogue1(const GameState *state)
 
 void DrawLevel1(const GameState *state)
 {
+    // 💡 落地陰影效果
     if (!gotPaper) {
-        Rectangle paperDest = { 530, 360, 150, 100 };
+        DrawEllipse(505, 455, 60, 15, Fade(BLACK, 0.40f)); 
+        Rectangle paperDest = { 430, 360, 150, 100 };
         Rectangle paperSrc = { 0.0f, 0.0f, (float)state->letterSprite.width, (float)state->letterSprite.height };
-        DrawTexturePro(state->letterSprite, paperSrc, paperDest, (Vector2){0, 0}, 0.0f, WHITE);
+        DrawTexturePro(state->letterSprite, paperSrc, paperDest, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.85f));
     }
 
+    // 💡 摩斯訊號燈（還原乾淨圓點）
     if (morseLightOn) {
         DrawCircle(850, 205, 12, WHITE); 
     }
 
     if (!gotMorseTable) {
+        DrawEllipse(950, 745, 80, 18, Fade(BLACK, 0.50f)); 
         Rectangle bookDest = { 850, 650, 200, 100 };
         Rectangle bookSrc = { 0.0f, 0.0f, (float)state->bookSprite.width, (float)state->bookSprite.height };
-        DrawTexturePro(state->bookSprite, bookSrc, bookDest, (Vector2){0, 0}, 0.0f, WHITE);
+        DrawTexturePro(state->bookSprite, bookSrc, bookDest, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.88f));
     }
 
+    // 💡 裝飾性鑰匙 (key.png) 繪製與落地陰影
+    DrawEllipse(105, 640, 25, 8, Fade(BLACK, 0.35f)); 
+    Rectangle keyDest = { 80, 600, 50, 50 };
+    Rectangle keySrc = { 0.0f, 0.0f, (float)state->keySprite.width, (float)state->keySprite.height };
+    // 💡 核心修改：將鑰匙透明度調低至 0.55f（搭配暗色底，讓它低調地藏在左下角環境中）
+    DrawTexturePro(state->keySprite, keySrc, keyDest, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.55f)); 
+
+    // 💡 誤導物 A (computer.png)
+    DrawEllipse(365, 825, 55, 14, Fade(BLACK, 0.40f)); 
+    Rectangle fakeComp1Dest = { 350, 655, 270, 180 }; 
+    Rectangle fakeComp1Src = { 0.0f, 0.0f, (float)state->hubTerminalSprite.width, (float)state->hubTerminalSprite.height };
+    DrawTexturePro(state->hubTerminalSprite, fakeComp1Src, fakeComp1Dest, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.65f));
+    
+    // 💡 誤導物 B：假電腦 (device02.png) 往左側平移
+    // 💡 落地陰影同步往左移 (X 從 775 修改為 705)
+    DrawEllipse(705, 458, 55, 14, Fade(BLACK, 0.40f)); 
+    // 💡 繪製位置水平左移 (X 從 720 修改為 650)
+    Rectangle fakeComp2Dest = { 650, 330, 110, 130 };
+    Rectangle compSrc2 = { 0.0f, 0.0f, (float)state->device02Sprite.width, (float)state->device02Sprite.height };
+    DrawTexturePro(state->device02Sprite, compSrc2, fakeComp2Dest, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.55f));
+
+    // 💡 真電腦控制台（解謎主螢幕）
+    DrawEllipse(240, 488, 55, 14, Fade(BLACK, 0.45f)); 
     Rectangle compDest = { 180, 350, 120, 140 };
     Rectangle compSrc = { 0.0f, 0.0f, (float)state->deviceSprite.width, (float)state->deviceSprite.height };
-    DrawTexturePro(state->deviceSprite, compSrc, compDest, (Vector2){0, 0}, 0.0f, computerFlashColor); 
+    Color finalCompColor = ColorAlpha(computerFlashColor, 0.92f);
+    DrawTexturePro(state->deviceSprite, compSrc, compDest, (Vector2){0, 0}, 0.0f, finalCompColor); 
     
+    // 玩家人物繪製
     Rectangle playerSrc = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
     DrawTexturePro(state->playerSprite, playerSrc, player.rect, (Vector2){0, 0}, 0.0f, WHITE);
 
@@ -440,6 +494,7 @@ void DrawLevel1(const GameState *state)
         DrawText(".._   ._.   ._..   _..", 400, 265, 30, WHITE); 
     }
 
+    // 懸浮 UI 視窗渲染
     if (showPaperText) {
         DrawPaperText();
     }
@@ -450,10 +505,10 @@ void DrawLevel1(const GameState *state)
         DrawNavigationCommand();
     }
     
+    // 當有劇情對話框時，強制不畫下方的輸入文字框，避免雜亂重疊
     if (showDialogue){
         DrawDialogue1(state);
-    }
-    if (inputMode) {
+    } else if (inputMode) {
         DrawRectangle(300, 800, 600, 80, Fade(WHITE, 0.9f));
         DrawRectangleLines(300, 800, 600, 80, DARKGRAY);
         DrawText(inputBuffer, 330, 820, 30, BLACK);

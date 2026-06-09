@@ -14,9 +14,28 @@
 
 static Vector2 playerPos;
 
-// 💡 3. 將 paperPile 的位置往下移（Y 從 350 改到 550）
+// 💡 將 paperPile 的位置往下移（Y 從 350 改到 550）
 static Rectangle paperPile = {540, 670, 300, 230};
 static Rectangle doorRect = {565, 800, 200, 200};
+
+// 💡 定義多個檔案室專屬的「垃圾干擾物/環境裝飾」碰撞體
+static Rectangle fakeShelfDecor = { 100, 300, 100, 400 }; // 左邊大書架區
+static Rectangle fakeLoosePaper = { 950, 760, 120, 60 };  // 右下角散落的紙張
+static Rectangle fakeWallPanel  = { 400, 250, 120, 120 }; // 中央牆壁暗處
+
+// ---------------------------
+// 💡 核心新增：牆面隨機亂拼文字的數據結構
+// ---------------------------
+typedef struct {
+    char character[2]; // 儲存單個字元字串 (例如 "U\0")
+    Vector2 pos;       // 文字在牆面上的 X, Y 座標
+    float rotation;    // 旋轉角度 (0 ~ 180 度)
+    float scale;       // 微幅隨機縮放大小，讓字體看起來更生動
+} ScatteredText;
+
+static ScatteredText wallTextList[20];
+static const char *secretSequenceStr = "UUUURRRDUURRDDDDLLLD";
+static bool isScatteredTextInitialized = false;
 
 // ---------------------------
 // UI 狀態
@@ -35,7 +54,7 @@ static int cursorX = 0;
 static int cursorY = 0;
 
 // ---------------------------
-// 對話
+// 对话
 // ---------------------------
 typedef enum {
     L2_DIALOGUE_NONE,
@@ -103,16 +122,14 @@ static void AdvanceDialogue(GameState *state)
 }
 
 // ---------------------------
-// 初始化拼圖
+// 初始化拼图
 // ---------------------------
 void InitPuzzle(void)
 {
     int temp[9] = {
-        // /* 正式版
         4,7,2,
         8,3,5,
         1,9,6
-        // */
     };
 
     for (int i = 0; i < 9; i++)
@@ -122,7 +139,7 @@ void InitPuzzle(void)
 }
 
 // ---------------------------
-// 判斷拼圖完成
+// 判断拼图完成
 // ---------------------------
 bool IsPuzzleSolved(void)
 {
@@ -140,7 +157,6 @@ bool IsPuzzleSolved(void)
 // ---------------------------
 void InitLevel2(void)
 {
-    // 💡 1. 將人物起始點移到跟第一關相同的位置 (1100, 450)
     playerPos = (Vector2){1100, 450};
     showPuzzle = false;
     showMap = false;
@@ -152,6 +168,24 @@ void InitLevel2(void)
     StartDialogue(enterDialogue, sizeof(enterDialogue) / sizeof(enterDialogue[0]), L2_DIALOGUE_NONE);
 
     InitPuzzle();
+
+    // 💡 核心新增：隨機生成 20 個字元在中央金屬牆面上的凌亂排布數據
+    for (int i = 0; i < 20; i++) {
+        wallTextList[i].character[0] = secretSequenceStr[i];
+        wallTextList[i].character[1] = '\0';
+        
+        // 限制在中央鐵板的大致範圍內（X: 180~950, Y: 220~500）
+        // 利用橫座標隨字元索引遞增（加上大量隨機擾動），讓字體能保持「從左到右」的閱讀順序，但排得歪七扭八
+        wallTextList[i].pos.x = 430.0f + (i * 28.0f) + (float)GetRandomValue(-8, 8);
+        wallTextList[i].pos.y = 380.0f + (float)GetRandomValue(-40, 70);
+        
+        // 根據你的要求：文字可以有些轉個角度 (0 到 180 度都有)
+        wallTextList[i].rotation = (float)GetRandomValue(0, 180);
+        
+        // 字體大小隨機微調
+        wallTextList[i].scale = (float)GetRandomValue(32, 42);
+    }
+    isScatteredTextInitialized = true;
 }
 
 // ---------------------------
@@ -159,17 +193,10 @@ void InitLevel2(void)
 // ---------------------------
 void UpdatePlayer(void)
 {
-    if (IsKeyDown(KEY_UP))
-        playerPos.y -= PLAYER_SPEED;
-
-    if (IsKeyDown(KEY_DOWN))
-        playerPos.y += PLAYER_SPEED;
-
-    if (IsKeyDown(KEY_LEFT))
-        playerPos.x -= PLAYER_SPEED;
-
-    if (IsKeyDown(KEY_RIGHT))
-        playerPos.x += PLAYER_SPEED;
+    if (IsKeyDown(KEY_UP))    playerPos.y -= PLAYER_SPEED;
+    if (IsKeyDown(KEY_DOWN))  playerPos.y += PLAYER_SPEED;
+    if (IsKeyDown(KEY_LEFT))  playerPos.x -= PLAYER_SPEED;
+    if (IsKeyDown(KEY_RIGHT)) playerPos.x += PLAYER_SPEED;
 }
 
 // ---------------------------
@@ -177,17 +204,10 @@ void UpdatePlayer(void)
 // ---------------------------
 void UpdatePuzzle(GameState *state)
 {
-    if (IsKeyPressed(KEY_UP) && cursorY > 0)
-        cursorY--;
-
-    if (IsKeyPressed(KEY_DOWN) && cursorY < 2)
-        cursorY++;
-
-    if (IsKeyPressed(KEY_LEFT) && cursorX > 0)
-        cursorX--;
-
-    if (IsKeyPressed(KEY_RIGHT) && cursorX < 2)
-        cursorX++;
+    if (IsKeyPressed(KEY_UP) && cursorY > 0)    cursorY--;
+    if (IsKeyPressed(KEY_DOWN) && cursorY < 2)  cursorY++;
+    if (IsKeyPressed(KEY_LEFT) && cursorX > 0)   cursorX--;
+    if (IsKeyPressed(KEY_RIGHT) && cursorX < 2)  cursorX++;
 
     int currentIndex = cursorY * 3 + cursorX;
 
@@ -216,12 +236,11 @@ void UpdatePuzzle(GameState *state)
                     showPuzzle = false;
                     showMap = true;
                     
-                    // 💡 4. 拼圖成功解開的瞬間，播放勝利音效 win.wav
                     play_effect_win();
 
                     StartDialogue(levelCompleteDialogue, sizeof(levelCompleteDialogue) / sizeof(levelCompleteDialogue[0]), L2_DIALOGUE_COMPLETE);
 
-                    state -> isLevel2Cleared = true;
+                    state->isLevel2Cleared = true;
                     AddItem(state, "Completed Map");
                 }
             }
@@ -261,6 +280,24 @@ void UpdateLevel2(GameState *state)
         PLAYER_SIZE
     };
 
+    if (IsKeyPressed(KEY_Z)) {
+        if (CheckCollisionRecs(playerRect, fakeShelfDecor)) {
+            static const char *txt[] = { "Rows and rows of old management logs...", "Most of them are completely ruined by moisture." };
+            StartDialogue(txt, 2, L2_DIALOGUE_NONE);
+            return;
+        }
+        if (CheckCollisionRecs(playerRect, fakeLoosePaper)) {
+            static const char *txt[] = { "Just some torn blueprints.", "Nothing related to the escape zone map." };
+            StartDialogue(txt, 2, L2_DIALOGUE_NONE);
+            return;
+        }
+        if (CheckCollisionRecs(playerRect, fakeWallPanel)) {
+            static const char *txt[] = { "There's a hollow metallic sound when I knock on this wall...", "But there's no way to open it right now." };
+            StartDialogue(txt, 2, L2_DIALOGUE_NONE);
+            return;
+        }
+    }
+
     if (CheckCollisionRecs(playerRect, paperPile)){
         if (IsKeyPressed(KEY_Z)){
             showPuzzle = true;
@@ -269,7 +306,6 @@ void UpdateLevel2(GameState *state)
         }
     }
     
-    // 💡 2. 這裡的隱形門判定（doorRect）完全保留，走過去按 Z 一樣會觸發對話！
     if (CheckCollisionRecs(playerRect, doorRect)) {
         if (IsKeyPressed(KEY_Z)) {
             StartDialogue(doorLockedDialogue, sizeof(doorLockedDialogue) / sizeof(doorLockedDialogue[0]), L2_DIALOGUE_NONE);
@@ -279,7 +315,7 @@ void UpdateLevel2(GameState *state)
 }
 
 // ---------------------------
-// 繪製拼圖 (置中、放大至 8 成、優化提示框與字體)
+// 繪製拼圖
 // ---------------------------
 void DrawPuzzle(const GameState *state)
 {
@@ -325,17 +361,21 @@ void DrawPuzzle(const GameState *state)
 
     const char *line1 = "Select two puzzle pieces to swap their positions.";
     const char *line2 = "Arrow Keys: Move | Z: Select | X: Cancel";
+    const char *hintLine = "Hint: The maze entrance is located at the bottom-left corner.";
     
     int fontSize = 22; 
 
     int lineWidth1 = MeasureText(line1, fontSize);
     int lineWidth2 = MeasureText(line2, fontSize);
+    int hintWidth = MeasureText(hintLine, fontSize);
 
     int textX1 = (GetScreenWidth() - lineWidth1) / 2;
     int textX2 = (GetScreenWidth() - lineWidth2) / 2;
+    int hintX = (GetScreenWidth() - hintWidth) / 2;
 
-    DrawText(line1, textX1, startY + totalSize + 40, fontSize, LIGHTGRAY);
-    DrawText(line2, textX2, startY + totalSize + 40 + 30, fontSize, WHITE);
+    DrawText(line1, textX1, startY + totalSize + 30, fontSize, LIGHTGRAY);
+    DrawText(line2, textX2, startY + totalSize + 30 + 25, fontSize, WHITE);
+    DrawText(hintLine, hintX, startY + totalSize + 30 + 50, fontSize, YELLOW); 
 }
 
 // ---------------------------
@@ -343,7 +383,7 @@ void DrawPuzzle(const GameState *state)
 // ---------------------------
 void DrawDialogue2(const GameState *state)
 {
-    DrawRectangle(150, 700, 980, 180, BLACK);
+    DrawRectangle(150, 700, 980, 180, Fade(BLACK, 0.85f));
     DrawRectangleLines(150, 700, 980, 180, WHITE);
 
     if (dialogueLines != NULL && dialogueIndex < dialogueCount) {
@@ -353,7 +393,7 @@ void DrawDialogue2(const GameState *state)
 }
 
 // ---------------------------
-// 繪製完成地圖
+// 绘制完成地图
 // ---------------------------
 void DrawCompletedMap(const GameState *state)
 {
@@ -369,22 +409,56 @@ void DrawCompletedMap(const GameState *state)
 }
 
 // ---------------------------
-// 繪製 Level2
+// 绘制 Level2
 // ---------------------------
 void DrawLevel2(const GameState *state)
 {
-    // 💡 注意：由於你在 main.c 裡有做全域/半透明背景切換，這裡改用半透明覆蓋底色，
-    // 以免吃掉 main.c 畫好的背景。如果你 main.c 沒畫這關背景，它也會是穩定的深藍色。
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.2f));
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.1f));
 
     if (!showPuzzle) 
     {
-        // 渲染 paperPile.png 貼圖 (位置已下移)
-        Rectangle paperSrcRec = { 0.0f, 0.0f, (float)state->paperPileSprite.width, (float)state->paperPileSprite.height };
-        DrawTexturePro(state->paperPileSprite, paperSrcRec, paperPile, (Vector2){0, 0}, 0.0f, WHITE);
+        // 頂層吊燈微弱動態漫射光效果 (Glow)
+        DrawCircleGradient((Vector2){640, 40}, 350, Fade(YELLOW, 0.08f), Fade(BLACK, 0.0f));
+        DrawCircleGradient((Vector2){640, 40}, 150, Fade(WHITE, 0.12f), Fade(BLACK, 0.0f));
 
-        // 💡 2. 移除：門的圖片繪製程式碼 (DrawTexturePro)
-        // 畫面上不再有門的圖片，實現完全隱形
+        // 💡 核心修改：利用迴圈將 20 個獨立字元以旋轉角度（DrawTextPro）無底色、低不透明度棕色畫在牆上
+        Color wallCodeColor = Fade(BROWN, 0.28f); // 穩定的低透明度棕色
+        
+        // 安全起見，如果因意外未初始化，則確保有基礎數據
+        if (isScatteredTextInitialized) {
+            for (int i = 0; i < 20; i++) {
+                // Raylib 的 DrawTextPro 支援文字旋轉，需要傳入：字型、文字、座標、旋轉中心點、旋轉角度、大小、間距、顏色
+                // 我們將旋轉中心點設為 (0,0)，並把隨機生成的角度代入
+                Vector2 origin = { 0, 0 };
+                DrawTextPro(
+                    state->storyFont, 
+                    wallTextList[i].character, 
+                    wallTextList[i].pos, 
+                    origin, 
+                    wallTextList[i].rotation, 
+                    wallTextList[i].scale, 
+                    2, 
+                    wallCodeColor
+                );
+            }
+        }
+
+        // 大落體書堆（paperPileSprite）的巨型沉降陰影
+        DrawEllipse(690, 875, 140, 25, Fade(BLACK, 0.65f)); 
+
+        // 渲染 paperPile.png 貼圖
+        Rectangle paperSrcRec = { 0.0f, 0.0f, (float)state->paperPileSprite.width, (float)state->paperPileSprite.height };
+        DrawTexturePro(state->paperPileSprite, paperSrcRec, paperPile, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.94f));
+
+        // 材料複用干擾術 (Asset Flip)
+        DrawEllipse(230, 715, 45, 10, Fade(BLACK, 0.4f)); 
+        Rectangle bDest1 = { 150, 650, 150, 75 };
+        Rectangle bSrc = { 0.0f, 0.0f, (float)state->bookSprite.width, (float)state->bookSprite.height };
+        DrawTexturePro(state->bookSprite, bSrc, bDest1, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.5f));
+
+        // 右下角散落的泛黃廢紙
+        DrawRectanglePro((Rectangle){980, 770, 35, 45}, (Vector2){0,0}, 15.0f, Fade(LIGHTGRAY, 0.4f));
+        DrawRectanglePro((Rectangle){1030, 790, 40, 30}, (Vector2){0,0}, -25.0f, Fade(GRAY, 0.35f));
 
         // 玩家
         Rectangle sourceRec = {

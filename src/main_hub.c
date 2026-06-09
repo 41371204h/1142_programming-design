@@ -94,6 +94,9 @@ int main(void) {
     state.bgLevel1 = LoadTexture("assets/background1.png"); // 第一關
     state.bgLevel2 = LoadTexture("assets/background2.png"); // 第二關
     state.bgLevel3 = LoadTexture("assets/background3.png"); // 第三關
+    state.handleDetailSprite = LoadTexture("assets/handle.png");
+    state.device02Sprite     = LoadTexture("assets/device02.png");
+    
 
     // 載入故事頁面用的字體：Ubuntu Sans Mono 28
     state.storyFont = LoadFontEx("assets/story_font.ttf", 28, NULL, 0);
@@ -171,6 +174,9 @@ int main(void) {
                 case SCREEN_ENDING:  play_bgm(4); break; // 結局故事畫面，可以選擇靜音烘托氣氛
             }
         }
+        if (state.currentScreen == SCREEN_LEVEL3 && IsKeyPressed(KEY_SPACE)) {
+            play_bgm(3);
+        }
 
         // --- B. 畫面繪製層 (Draw) ---
         BeginDrawing();
@@ -247,6 +253,8 @@ int main(void) {
     UnloadTexture(state.bgLevel1);
     UnloadTexture(state.bgLevel2);
     UnloadTexture(state.bgLevel3);
+    UnloadTexture(state.handleDetailSprite);
+    UnloadTexture(state.device02Sprite);
     UnloadFont(state.storyFont);
 
     close_audio();
@@ -379,6 +387,17 @@ void DrawInventoryItemDetail(const char *itemName, const GameState *state) {
         DrawNavigationCommand();
     } else if (strcmp(itemName, "Completed Map") == 0) {
         DrawCompletedMap(state); 
+    } else if (strcmp(itemName, "Handle") == 0) {
+        // 畫出大詳細資訊底框 (半透明灰色增加高級感)
+        DrawRectangle(390, 200, 500, 450, Fade(LIGHTGRAY, 0.95f));
+        DrawRectangleLines(390, 200, 500, 450, DARKGRAY);
+        
+        DrawText("Item: Maintenance Handle", 440, 240, 28, BLACK);
+        
+        // 繪製專屬的 handle.png (置中並放大成 200x200 的規格顯示)
+        Rectangle srcRec = { 0.0f, 0.0f, (float)state->handleDetailSprite.width, (float)state->handleDetailSprite.height };
+        Rectangle destRec = { 540, 300, 200, 200 }; 
+        DrawTexturePro(state->handleDetailSprite, srcRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
     } else {
         DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.97f));
         DrawRectangleLines(240, 170, 800, 470, WHITE);

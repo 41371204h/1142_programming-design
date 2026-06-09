@@ -103,8 +103,10 @@ void UpdateLevel3(GameState *state) {
             if (IsKeyPressed(KEY_SPACE)) {
                 currentState = L3_PLAYING;
                 
-                // 💡 2. 一進去迷宮正式遊玩時，立刻播放警報聲 alarm.wav
-                play_effect_alarm();
+                // 💡 2. 核心優化：按下空白鍵（Warning 提示框消失）的瞬間
+                // 呼叫 SDL_mixer 的強制截斷指令，把正在狂響的警報聲立刻關掉！
+                // 這裡直接使用標準的 SDL_mixer API 來停掉所有音效通道
+                Mix_HaltChannel(-1); 
             }
             break;
 
@@ -121,6 +123,7 @@ void UpdateLevel3(GameState *state) {
                 // 第二階段 (系統關閉)：等待玩家重新開始或回主畫面
                 if (IsKeyPressed(KEY_SPACE)) {
                     ResetLevel3(state);
+                    play_bgm(3); 
                 } 
             }
             break;
@@ -133,7 +136,6 @@ void UpdateLevel3(GameState *state) {
                     
                     // 玩家按空白鍵確認後，才真正判定第三關過關並回主畫面！
                     state->isLevel3Cleared = true;
-
                     state->currentScreen = SCREEN_HUB; 
                     ResetLevel3(state); 
                 }
@@ -145,6 +147,9 @@ void UpdateLevel3(GameState *state) {
                 currentState = L3_FAILED; 
                 failedTimer = 0.0f; // 確保剛進入失敗狀態時，計時器是 0
                 showFailedStory = true;
+
+                // 當時間到失敗的那一瞬間，立刻淡出關閉背景音樂 bgm3.mp3
+                stop_bgm(); 
                 break;
             }
             // make sure that the timer is still counting down when the inventory is opened
@@ -164,7 +169,7 @@ void UpdateLevel3(GameState *state) {
                         showLockUI = false;   // 關閉密碼鎖的 UI
                         showItemPopup = true; // 開啟獲得道具視窗
                         
-                        // 💡 4. 最終闖關成功（解開程式拿到 Card Key 鑰匙）時，播放 success.wav
+                        // 最終闖關成功（解開程式拿到 Card Key 鑰匙）時，播放 success.wav
                         play_effect_success();
 
                         AddItem(state, "Card Key");
@@ -200,7 +205,7 @@ void UpdateLevel3(GameState *state) {
                         hasHandle = true;
                         maze[playerY][playerX] = 0; // 拿走後變空地
                         
-                        // 💡 3. 走迷宮拿到拉柄工具後，播放 get_tool.wav 音效
+                        // 走迷宮拿到拉柄工具後，播放 get_tool.wav 音效
                         play_effect_get_tool();
 
                         AddItem(state, "Handle"); // put handle into the inventory
@@ -242,6 +247,7 @@ void DrawLevel3(const GameState *state) {
         }
         return; 
     }
+    
 
     // --- 繪製迷宮與遊戲本體 ---
     int offsetX = (GetScreenWidth() - (MAZE_COLS * TILE_SIZE)) / 2; // 置中顯示
@@ -254,7 +260,7 @@ void DrawLevel3(const GameState *state) {
 
             // 設定目標貼圖的渲染範圍（自動縮放至每一格 TILE_SIZE 的大小）
             Rectangle destRec = { (float)drawX, (float)drawY, (float)TILE_SIZE, (float)TILE_SIZE };
-            Rectangle sourceRec = { 0.0f, 0.0f, 0.0f, 0.0f };
+            Rectangle sourceRec = { 0.0f, 0.0f, (float)0, (float)0 };
 
             // 根據不同的迷宮代碼，指定對應的圖片與來源裁剪範圍
             switch (maze[y][x]) {
@@ -300,6 +306,31 @@ void DrawLevel3(const GameState *state) {
     if (hasHandle) DrawText("Staus: Handle founded, please go to the Core Device.", 20, 60, 25, GREEN);
     else DrawText("Hint: Do you remember the message and directional clues you found in Level 1?", 20, 60, 25, GRAY);
 
+    // 💡 核心新增：在第三關迷宮右上角/右側空白處繪製說明欄 (Legend)
+    // 假設你的迷宮繪製有定義 offsetX 和 offsetY，我們直接往迷宮右邊界算過去
+    int legendX = offsetX + (MAZE_COLS * TILE_SIZE) + 60; // 迷宮右側外推 60 像素
+    int legendY = offsetY + 20;                           // 與迷宮頂端對齊附近
+
+    // 1. 繪製圖鑑外框與標題
+    DrawRectangle(legendX - 20, legendY - 10, 320, 220, Fade(BLACK, 0.5f));
+    DrawRectangleLines(legendX - 20, legendY - 10, 320, 220, GRAY);
+    DrawText("FACILITY MAP LEGEND", legendX, legendY, 20, SKYBLUE);
+
+    // 2. 繪製 Handle 的標示 (使用獨立的 handleDetailSprite)
+    Rectangle hSrc = { 0.0f, 0.0f, (float)state->handleDetailSprite.width, (float)state->handleDetailSprite.height };
+    Rectangle hDest = { (float)legendX, (float)legendY + 40, 60, 60 }; // 縮放為 60x60 大小
+    DrawTexturePro(state->handleDetailSprite, hSrc, hDest, (Vector2){0, 0}, 0.0f, WHITE);
+    DrawText("Handle", legendX + 80, legendY + 50, 22, WHITE);
+    DrawText("TAKE IT", legendX + 80, legendY + 75, 15, GRAY); // 提示玩家這是該物件
+
+    // 3. 繪製 Device 的標示 (使用獨立的 device02Sprite)
+    Rectangle dSrc = { 0.0f, 0.0f, (float)state->device02Sprite.width, (float)state->device02Sprite.height };
+    Rectangle dDest = { (float)legendX, (float)legendY + 120, 60, 60 }; // 縮放為 60x60 大小
+    DrawTexturePro(state->device02Sprite, dSrc, dDest, (Vector2){0, 0}, 0.0f, WHITE);
+    DrawText("Device", legendX + 80, legendY + 130, 22, WHITE);
+    DrawText("GOAL", legendX + 80, legendY + 155, 15, GRAY);
+
+
     // --- 繪製密碼輸入介面 ---
     if (showLockUI) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f));
@@ -324,7 +355,7 @@ void DrawLevel3(const GameState *state) {
         DrawText("[Press Space To Start]", boxX + 160, boxY + 160, 20, LIGHTGRAY);
     }
 
-    // 繪製過關獲得道具的彈出視窗 
+    // 💡 繪製過關獲得道具的彈出視窗 (在此加入框住鑰匙物品的長方形裝飾線)
     if (showItemPopup) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f)); 
         
@@ -339,6 +370,10 @@ void DrawLevel3(const GameState *state) {
         DrawText("SYSTEM UNLOCKED", boxX + 90, boxY + 30, 35, GREEN);
         DrawText("Obtained: Card Key", boxX + 150, boxY + 230, 22, WHITE);
         DrawText("[ Press SPACE to Return to Main Hub ]", boxX + 90, boxY + 300, 18, LIGHTGRAY);
+
+        // 💡 核心功能：使用 DrawRectangleLinesEx 繪製一個圍繞在鑰匙外圍的科技感長方形亮框
+        Rectangle itemOutlineRec = { boxX + (boxWidth - 120) / 2, boxY + 90, 120, 120 };
+        DrawRectangleLinesEx(itemOutlineRec, 2.0f, LIME);
 
         Rectangle sourceRec = { 0.0f, 0.0f, (float)state->keySprite.width, (float)state->keySprite.height };
         Rectangle destRec = { boxX + (boxWidth - 100) / 2, boxY + 100, 100, 100 };

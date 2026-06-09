@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "level1.h"
 #include "game_shared.h"
+#include "audio.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -198,9 +199,7 @@ static void HandleInteraction(GameState *state)
 {
     Rectangle paperRect = {530, 360, 150, 100};      
     Rectangle morseRect = {850, 650, 200, 100};       
-    // 💡 3. 左邊裝置往右移一點，同步更新物理碰撞判定盒 (X 從 120 改為 180)
     Rectangle computerRect = {180, 350, 120, 140};  
-    // 💡 恢復：門的隱形判定區域（坐標與原本位置一致）
     Rectangle doorRect = {1080, 375, 200, 200};     
 
     if (CheckCollisionRecs(player.rect, paperRect) && !gotPaper) {
@@ -231,7 +230,6 @@ static void HandleInteraction(GameState *state)
         ClearPendingTextInput();
     }
 
-    // 💡 恢復：走到隱形門的區域按 Z，觸發被鎖住的對話
     if (CheckCollisionRecs(player.rect, doorRect)) {
         StartDialogue(doorLockedDialogue, sizeof(doorLockedDialogue) / sizeof(doorLockedDialogue[0]), L1_DIALOGUE_START);
         returnToHubAfterDialogue = false;
@@ -274,16 +272,18 @@ static void HandleInputBox(GameState *state)
             }
             showNavigationCommand = true;
             StartDialogue(successDialogue, sizeof(successDialogue) / sizeof(successDialogue[0]), L1_DIALOGUE_SUCCESS);
-            returnToHubAfterDialogue = true; // 💡 恢復
+            returnToHubAfterDialogue = true; 
             
             state->isLevel1Cleared = true;
             strcpy(state->secretSequence, "URLD");
+            play_effect_win();
         } else {
             computerFlashTargetColor = Fade(RED, 0.6f); 
             computerFlashColor = computerFlashTargetColor;
             computerFlashCount = 3;
             computerFlashOn = true;
             flashTimer = 0;
+            play_effect_fail();
         }
         inputMode = false;
     }
@@ -413,41 +413,33 @@ void DrawDialogue1(const GameState *state)
 
 void DrawLevel1(const GameState *state)
 {
-    // 1. 繪製信件紙張 letter.png
     if (!gotPaper) {
         Rectangle paperDest = { 530, 360, 150, 100 };
         Rectangle paperSrc = { 0.0f, 0.0f, (float)state->letterSprite.width, (float)state->letterSprite.height };
         DrawTexturePro(state->letterSprite, paperSrc, paperDest, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // 💡 1. 閃爍的燈 (只有在沒有任何大視窗彈出時才繪製，保持視覺乾淨)
     if (morseLightOn) {
         DrawCircle(850, 205, 12, WHITE); 
     }
 
-    // 2. 繪製摩斯書本 book.png
     if (!gotMorseTable) {
         Rectangle bookDest = { 850, 650, 200, 100 };
         Rectangle bookSrc = { 0.0f, 0.0f, (float)state->bookSprite.width, (float)state->bookSprite.height };
         DrawTexturePro(state->bookSprite, bookSrc, bookDest, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // 3. 繪製控制台機器 device01.png
     Rectangle compDest = { 180, 350, 120, 140 };
     Rectangle compSrc = { 0.0f, 0.0f, (float)state->deviceSprite.width, (float)state->deviceSprite.height };
     DrawTexturePro(state->deviceSprite, compSrc, compDest, (Vector2){0, 0}, 0.0f, computerFlashColor); 
     
-    // 4. 玩家繪製
     Rectangle playerSrc = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
     DrawTexturePro(state->playerSprite, playerSrc, player.rect, (Vector2){0, 0}, 0.0f, WHITE);
 
-    // ---- 💡 摩斯密碼文字（長短線段）隱藏邏輯調整 ----
-    // 加上額外判斷條件：!showPaperText && !showMorseTable && !showNavigationCommand
     if (showMorseText && !showPaperText && !showMorseTable && !showNavigationCommand) {
         DrawText(".._   ._.   ._..   _..", 400, 265, 30, WHITE); 
     }
 
-    // ---- 介面與文字疊加層 ----
     if (showPaperText) {
         DrawPaperText();
     }

@@ -14,5 +14,6 @@ void play_effect_win();     // 通關
 void play_effect_fail();    // 失敗
 void play_effect_alarm();   // 警報
 void play_effect_get_tool(); // 拿到把柄
+void play_effect_success();
 
 #endif

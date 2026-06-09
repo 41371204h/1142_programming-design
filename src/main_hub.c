@@ -3,6 +3,7 @@
 #include "level1.h"
 #include "level2.h"
 #include "level3.h"
+#include "audio.h"
 #include <string.h> 
 
 #define SCREEN_HEIGHT 960
@@ -47,6 +48,9 @@ int main(void) {
     // 1. Initializing the game window (res: 1280x960)
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Puzzle Game"); 
     SetTargetFPS(60);
+
+    // 初始化 SDL_mixer 音訊，並自動無限循環播放 bgm0.mp3
+    init_audio();
 
     // 2. Initializing the game's core state 
     GameState state = {0};
@@ -115,10 +119,22 @@ int main(void) {
             }
         }
 
+        // 💡 關鍵優化：當玩家主動按下 X 鍵中途想要離開關卡回到大廳時
+        if (IsKeyPressed(KEY_X) && !state.inventory.opened) {
+            // 如果目前是在關卡中，且沒有在看對話/大視窗，就允許退回大廳並切換回 bgm0
+            if (state.currentScreen != SCREEN_HUB && state.currentScreen != SCREEN_ENDING) {
+                // 這裡留給各關卡內部的關鍵對話或退出狀態機處理，
+                // 為了雙重保險，我們在下方 UpdateHub 偵測 currentScreen 的改變。
+            }
+        }
+
         // --- A. 邏輯更新層 (Update) ---
         if (state.inventory.opened) {
             UpdateGlobalInventory(&state);
         }
+
+        // 儲存更新前的畫面狀態，用來偵測畫面是否發生了切換
+        int lastScreen = state.currentScreen;
 
         switch (state.currentScreen) {
             case SCREEN_HUB:
@@ -144,40 +160,38 @@ int main(void) {
                 break;
         }
 
+        // 💡 核心變更：全域自動 BGM 派發系統！
+        // 如果這個 Frame 的狀態機改變了，代表玩家「切換了關卡」，這時才去呼叫 play_bgm
+        if (state.currentScreen != lastScreen) {
+            switch (state.currentScreen) {
+                case SCREEN_HUB:     play_bgm(0); break; // 切回大廳，循環播 bgm0.mp3
+                case SCREEN_LEVEL1:  play_bgm(1); break; // 進入第一關，循環播 bgm1.mp3
+                case SCREEN_LEVEL2:  play_bgm(2); break; // 進入第二關，循環播 bgm2.mp3
+                case SCREEN_LEVEL3:  play_bgm(3); break; // 進入第三關，循環播 bgm3.mp3
+                case SCREEN_ENDING:  play_bgm(4); break; // 結局故事畫面，可以選擇靜音烘托氣氛
+            }
+        }
+
         // --- B. 畫面繪製層 (Draw) ---
         BeginDrawing();
         ClearBackground(BLACK); // 基礎底色
 
-        // 💡 1. 宣告區域貼圖變數，用來指向當前畫面的背景
         Texture2D currentBg = { 0 };
 
-        // 💡 2. 根據現在的畫面狀態，指派正確的背景圖片
         switch (state.currentScreen) {
-            case SCREEN_HUB:
-                currentBg = state.bgHub;
-                break;
-            case SCREEN_LEVEL1:
-                currentBg = state.bgLevel1;
-                break;
-            case SCREEN_LEVEL2:
-                currentBg = state.bgLevel2;
-                break;
-            case SCREEN_LEVEL3:
-                currentBg = state.bgLevel3;
-                break;
-            case SCREEN_ENDING:
-                currentBg = state.bgHub; // 結局畫面沿用主畫面背景
-                break;
+            case SCREEN_HUB:     currentBg = state.bgHub;    break;
+            case SCREEN_LEVEL1:  currentBg = state.bgLevel1; break;
+            case SCREEN_LEVEL2:  currentBg = state.bgLevel2; break;
+            case SCREEN_LEVEL3:  currentBg = state.bgLevel3; break;
+            case SCREEN_ENDING:  currentBg = state.bgHub;    break;
         }
 
-        // 💡 3. 安全防護：確認圖片有效 (id > 0) 才進行動態滿版縮放繪製
         if (currentBg.id > 0) {
             Rectangle sourceRec = { 0.0f, 0.0f, (float)currentBg.width, (float)currentBg.height };
             Rectangle destRec = { 0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight() };
             DrawTexturePro(currentBg, sourceRec, destRec, (Vector2){ 0, 0 }, 0.0f, WHITE);
         }
 
-        // 💡 4. 繪製各關卡原本的物件與 UI 元件
         switch (state.currentScreen) {
             case SCREEN_HUB:
                 DrawHub(&state); 
@@ -195,10 +209,7 @@ int main(void) {
                 if (showEndingStory) {
                     const char *endingText = "Permission granted\nThe central escape pod activa%]K:(...";
                     int charsToShow = (int)(endingTimer * 15.0f); 
-                    
-                    DrawTextEx(state.storyFont, TextSubtext(endingText, 0, charsToShow), 
-                               (Vector2){180, 400}, 56, 2, WHITE);
-                               
+                    DrawTextEx(state.storyFont, TextSubtext(endingText, 0, charsToShow), (Vector2){180, 400}, 56, 2, WHITE);
                     DrawText("[ Press X to Continue ]", SCREEN_WIDTH / 2 - 130, SCREEN_HEIGHT - 100, 20, LIGHTGRAY);
                 } else {
                     DrawText("The end", SCREEN_WIDTH / 2 - 170, SCREEN_HEIGHT / 2 - 40, 80, WHITE);
@@ -207,7 +218,6 @@ int main(void) {
                 break;
         }
 
-        // --- 永遠疊加在最上層的全域物品欄繪製 ---
         if (state.inventory.opened) {
             DrawGlobalInventory(&state);
         }
@@ -215,7 +225,7 @@ int main(void) {
         EndDrawing();
     }
 
-    // 遊戲結束關閉前，釋放顯示卡中素材的記憶體
+    // 釋放記憶體
     UnloadTexture(state.playerSprite);
     UnloadTexture(state.pathSprite);
     UnloadTexture(state.wallSprite);
@@ -239,7 +249,7 @@ int main(void) {
     UnloadTexture(state.bgLevel3);
     UnloadFont(state.storyFont);
 
-    // 4. 清理並關閉
+    close_audio();
     CloseWindow();
     return 0;
 }

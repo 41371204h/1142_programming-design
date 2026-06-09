@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "game_shared.h"
 #include "level2.h"
+#include "audio.h"
 #include <string.h>
 #include <stdbool.h>
 
@@ -214,6 +215,10 @@ void UpdatePuzzle(GameState *state)
                 {
                     showPuzzle = false;
                     showMap = true;
+                    
+                    // 💡 4. 拼圖成功解開的瞬間，播放勝利音效 win.wav
+                    play_effect_win();
+
                     StartDialogue(levelCompleteDialogue, sizeof(levelCompleteDialogue) / sizeof(levelCompleteDialogue[0]), L2_DIALOGUE_COMPLETE);
 
                     state -> isLevel2Cleared = true;

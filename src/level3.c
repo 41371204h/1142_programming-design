@@ -1,6 +1,9 @@
+// TODO: add a rectangle that shows the player gets the key after entering the right answer
+
 #include "raylib.h"
 #include "game_shared.h"
 #include "level3.h"
+#include "audio.h"
 #include <string.h>
 
 // --- 關卡設定 ---
@@ -16,7 +19,7 @@ typedef enum {
 } L3State;
 
 // 迷宮初始模板 (每次重置都會拷貝這份)
-// 0=path, 1=wall, 2=handle(North East), 3=Core device(center), 4=starting point
+// 0=path, 1=wall, 2=handle, 3=Core device(center), 4=starting point
 const int defaultMaze[MAZE_ROWS][MAZE_COLS] = {
     {1, 1, 1, 0, 0, 0},
     {0, 0, 0, 0, 1, 0},
@@ -93,6 +96,9 @@ void UpdateLevel3(GameState *state) {
             // 等待玩家按下空白鍵開始遊戲
             if (IsKeyPressed(KEY_SPACE)) {
                 currentState = L3_PLAYING;
+                
+                // 💡 2. 一進去迷宮正式遊玩時，立刻播放警報聲 alarm.wav
+                play_effect_alarm();
             }
             break;
 
@@ -110,10 +116,6 @@ void UpdateLevel3(GameState *state) {
                 if (IsKeyPressed(KEY_SPACE)) {
                     ResetLevel3(state);
                 } 
-                /*else if (IsKeyPressed(KEY_ESCAPE)) {
-                    ResetLevel3(state);
-                    state->currentScreen = SCREEN_HUB;
-                } */
             }
             break;
 
@@ -125,6 +127,7 @@ void UpdateLevel3(GameState *state) {
                     
                     // 玩家按空白鍵確認後，才真正判定第三關過關並回主畫面！
                     state->isLevel3Cleared = true;
+
                     state->currentScreen = SCREEN_HUB; 
                     ResetLevel3(state); 
                 }
@@ -154,10 +157,14 @@ void UpdateLevel3(GameState *state) {
                         // 密碼正確！過關
                         showLockUI = false;   // 關閉密碼鎖的 UI
                         showItemPopup = true; // 開啟獲得道具視窗
+                        
+                        // 💡 4. 最終闖關成功（解開程式拿到 Card Key 鑰匙）時，播放 success.wav
+                        play_effect_success();
+
                         AddItem(state, "Card Key");
-                        // ResetLevel3(state); // 為下一次遊玩重置
                     } else {
-                        // 密碼錯誤，清空重打 (但不中斷遊戲與時間)
+                        // 密碼錯誤，清空重打 (且播放失敗警示音)
+                        play_effect_fail();
                         inputIndex = 0;
                         memset(inputBuffer, 0, sizeof(inputBuffer));
                     }
@@ -186,6 +193,10 @@ void UpdateLevel3(GameState *state) {
                     if (maze[playerY][playerX] == 2) {
                         hasHandle = true;
                         maze[playerY][playerX] = 0; // 拿走後變空地
+                        
+                        // 💡 3. 走迷宮拿到拉柄工具後，播放 get_tool.wav 音效
+                        play_effect_get_tool();
+
                         AddItem(state, "Handle"); // put handle into the inventory
                     }
                     
@@ -198,6 +209,7 @@ void UpdateLevel3(GameState *state) {
             break;
     }
 }
+
 void DrawLevel3(const GameState *state) {
     // 如果是失敗狀態，畫出兩階段的黑屏
     if (currentState == L3_FAILED) {
@@ -280,7 +292,7 @@ void DrawLevel3(const GameState *state) {
     // UI 資訊
     DrawText(TextFormat("Remaining Time: %.1f s", timeLeft), 20, 20, 30, (timeLeft < 15) ? RED : WHITE);
     if (hasHandle) DrawText("Staus: Handle founded, please go to the Core Device.", 20, 60, 25, GREEN);
-    else DrawText("Hint: Please search for the handle in the North East corner.", 20, 60, 25, GRAY);
+    else DrawText("Hint: Do you remember the message and directional clues you found in Level 1?", 20, 60, 25, GRAY);
 
     // --- 繪製密碼輸入介面 ---
     if (showLockUI) {

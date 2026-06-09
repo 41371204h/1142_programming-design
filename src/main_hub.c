@@ -46,7 +46,7 @@ void AddItem(GameState *state, const char *itemName) {
 
 int main(void) {
     // 1. Initializing the game window (res: 1280x960)
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Zero Depth"); 
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Depth Zero"); 
     SetTargetFPS(60);
 
     // 初始化 SDL_mixer 音訊，並自動無限循環播放 bgm0.mp3
@@ -71,7 +71,7 @@ int main(void) {
     state.wallSprite       = LoadTexture("assets/wall.png");
     state.wallToolSprite   = LoadTexture("assets/wall_tool.png");
     state.wallDeviceSprite = LoadTexture("assets/wall_device.png");
-    // load the key card for level 3
+    // load the key for level 3
     state.keySprite = LoadTexture("assets/key.png");
     state.paperPileSprite = LoadTexture("assets/paperPile.png");
     state.puzzleParts[0] = LoadTexture("assets/part_1.png");

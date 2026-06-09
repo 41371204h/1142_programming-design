@@ -169,10 +169,10 @@ void UpdateLevel3(GameState *state) {
                         showLockUI = false;   // 關閉密碼鎖的 UI
                         showItemPopup = true; // 開啟獲得道具視窗
                         
-                        // 最終闖關成功（解開程式拿到 Card Key 鑰匙）時，播放 success.wav
+                        // 最終闖關成功（解開程式拿到 Key）時，播放 success.wav
                         play_effect_success();
 
-                        AddItem(state, "Card Key");
+                        AddItem(state, "Key");
                     } else {
                         // 密碼錯誤，清空重打 (且播放失敗警示音)
                         play_effect_fail();
@@ -368,7 +368,7 @@ void DrawLevel3(const GameState *state) {
         DrawRectangleLinesEx((Rectangle){boxX, boxY, boxWidth, boxHeight}, 3.0f, WHITE);
         
         DrawText("SYSTEM UNLOCKED", boxX + 90, boxY + 30, 35, GREEN);
-        DrawText("Obtained: Card Key", boxX + 150, boxY + 230, 22, WHITE);
+        DrawText("Obtained: Key", boxX + 150, boxY + 230, 22, WHITE);
         DrawText("[ Press SPACE to Return to Main Hub ]", boxX + 90, boxY + 300, 18, LIGHTGRAY);
 
         // 💡 核心功能：使用 DrawRectangleLinesEx 繪製一個圍繞在鑰匙外圍的科技感長方形亮框

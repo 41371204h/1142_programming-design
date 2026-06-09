@@ -10,9 +10,9 @@
 #define SCREEN_WIDTH 1280
 
 // Homw page terminal settings
-static Rectangle termLevel1 = { 150, 450, 250, 180 }; // terminal for Level 1 (left)
-static Rectangle termLevel2 = { 515, 450, 250, 180 }; // terminal for Level 2 (right)
-static Rectangle termLevel3 = { 880, 450, 250, 180 }; // terminal for Level 3 (middle)
+static Rectangle termLevel1 = { 150, 450, 270, 180 }; // terminal for Level 1 (left)
+static Rectangle termLevel2 = { 515, 450, 270, 180 }; // terminal for Level 2 (right)
+static Rectangle termLevel3 = { 880, 450, 270, 180 }; // terminal for Level 3 (middle)
 
 // 結局畫面的專屬計時器
 static float endingTimer = 0.0f;

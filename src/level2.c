@@ -13,7 +13,8 @@
 
 static Vector2 playerPos;
 
-static Rectangle paperPile = {540, 350, 200, 200};
+// 💡 3. 將 paperPile 的位置往下移（Y 從 350 改到 550）
+static Rectangle paperPile = {540, 670, 300, 230};
 static Rectangle doorRect = {565, 800, 200, 200};
 
 // ---------------------------
@@ -138,7 +139,8 @@ bool IsPuzzleSolved(void)
 // ---------------------------
 void InitLevel2(void)
 {
-    playerPos = (Vector2){600, 800};
+    // 💡 1. 將人物起始點移到跟第一關相同的位置 (1100, 450)
+    playerPos = (Vector2){1100, 450};
     showPuzzle = false;
     showMap = false;
     showDialogue = false;
@@ -261,6 +263,8 @@ void UpdateLevel2(GameState *state)
             StartDialogue(puzzleOpenDialogue, sizeof(puzzleOpenDialogue) / sizeof(puzzleOpenDialogue[0]), L2_DIALOGUE_NONE);
         }
     }
+    
+    // 💡 2. 這裡的隱形門判定（doorRect）完全保留，走過去按 Z 一樣會觸發對話！
     if (CheckCollisionRecs(playerRect, doorRect)) {
         if (IsKeyPressed(KEY_Z)) {
             StartDialogue(doorLockedDialogue, sizeof(doorLockedDialogue) / sizeof(doorLockedDialogue[0]), L2_DIALOGUE_NONE);
@@ -274,15 +278,12 @@ void UpdateLevel2(GameState *state)
 // ---------------------------
 void DrawPuzzle(const GameState *state)
 {
-    // 💡 1. 繪製全螢幕的黑色底，達到完全覆蓋背景、跳出新視窗的強烈體感
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), BLACK);
 
-    // 💡 2. 計算拼圖總寬高與全置中起點
-    int totalSize = 3 * PUZZLE_TILE_SIZE; // 3 * 160 = 480 像素
+    int totalSize = 3 * PUZZLE_TILE_SIZE; 
     int startX = (GetScreenWidth() - totalSize) / 2;
-    int startY = (GetScreenHeight() - totalSize) / 2 - 40; // 稍微往上提給下方操作說明留空間
+    int startY = (GetScreenHeight() - totalSize) / 2 - 40; 
 
-    // 💡 3. 繪製拼圖外框線
     DrawRectangleLinesEx((Rectangle){startX - 5, startY - 5, totalSize + 10, totalSize + 10}, 4.0f, DARKGRAY);
 
     for (int y = 0; y < 3; y++)
@@ -299,60 +300,37 @@ void DrawPuzzle(const GameState *state)
                 PUZZLE_TILE_SIZE
             };
 
-            // 繪製對應的拼圖切片
             if (tileValue >= 1 && tileValue <= 9) {
                 Rectangle srcRec = { 0.0f, 0.0f, (float)state->puzzleParts[tileValue - 1].width, (float)state->puzzleParts[tileValue - 1].height };
                 DrawTexturePro(state->puzzleParts[tileValue - 1], srcRec, tileRect, (Vector2){0, 0}, 0.0f, WHITE);
             }
 
-            // 💡 4. 優化外框提示顏色與粗細，避免黃框與背景沙子混色
             if (index == selectedTile)
             {
-                // 已選取格：醒目的綠色內縮框
                 DrawRectangleLinesEx(tileRect, 5.0f, GREEN);
             }
 
             if (x == cursorX && y == cursorY)
             {
-                // 目前游標指著的格子：改用亮青色 (CYAN)，並疊加微微高亮透明色塊
                 DrawRectangleLinesEx(tileRect, 5.0f, SKYBLUE);
                 DrawRectangleRec(tileRect, Fade(WHITE, 0.15f));
             }
         }
     }
 
-    // 💡 1. 將兩行文字拆開，定義各自的字串內容
     const char *line1 = "Select two puzzle pieces to swap their positions.";
     const char *line2 = "Arrow Keys: Move | Z: Select | X: Cancel";
     
-    // 設定字型大小 (維持原樣或微調)
     int fontSize = 22; 
 
-    // 💡 2. 使用 MeasureText 自動計算這兩行字在當前字型大小下的像素寬度
     int lineWidth1 = MeasureText(line1, fontSize);
     int lineWidth2 = MeasureText(line2, fontSize);
 
-    // 💡 3. 精準計算出能讓文字水平置中的 X 座標
     int textX1 = (GetScreenWidth() - lineWidth1) / 2;
     int textX2 = (GetScreenWidth() - lineWidth2) / 2;
 
-    // 💡 4. 繪製第一行字 (擺在拼圖正下方，startY + totalSize + 40 附近)
-    DrawText(
-        line1,
-        textX1,
-        startY + totalSize + 40,
-        fontSize,
-        LIGHTGRAY
-    );
-
-    // 💡 5. 繪製第二行字 (再往下移 30 像素)
-    DrawText(
-        line2,
-        textX2,
-        startY + totalSize + 40 + 30,
-        fontSize,
-        WHITE // 讓操作按鍵提示亮一點，視覺層次更好
-    );
+    DrawText(line1, textX1, startY + totalSize + 40, fontSize, LIGHTGRAY);
+    DrawText(line2, textX2, startY + totalSize + 40 + 30, fontSize, WHITE);
 }
 
 // ---------------------------
@@ -370,25 +348,18 @@ void DrawDialogue2(const GameState *state)
 }
 
 // ---------------------------
-// 繪製完成地圖 (精準對齊拼圖外框的正方形大小與位置)
+// 繪製完成地圖
 // ---------------------------
 void DrawCompletedMap(const GameState *state)
 {
-    // 💡 1. 這裡完全複製 DrawPuzzle 的大小與置中數學計算
-    int totalSize = 3 * PUZZLE_TILE_SIZE; // 3 * 160 = 480 像素
+    int totalSize = 3 * PUZZLE_TILE_SIZE; 
     int startX = (GetScreenWidth() - totalSize) / 2;
-    int startY = (GetScreenHeight() - totalSize) / 2 - 40; // 稍微往上提，與拼圖完全同位置
+    int startY = (GetScreenHeight() - totalSize) / 2 - 40; 
 
-    // 💡 2. 將目標渲染範圍設定為與拼圖完全一樣的正方形
     Rectangle mapDestRec = { (float)startX, (float)startY, (float)totalSize, (float)totalSize };
-
-    // 3. 獲取圖片原始大小範圍
     Rectangle mapSrcRec = { 0.0f, 0.0f, (float)state->mapSprite.width, (float)state->mapSprite.height };
 
-    // 4. 渲染地圖圖片 (會自動完美縮放進 480x480 的正方形中)
     DrawTexturePro(state->mapSprite, mapSrcRec, mapDestRec, (Vector2){0, 0}, 0.0f, WHITE);
-
-    // 5. 繪製外框線，粗細(4.0f)與顏色(DARKGRAY)皆與拼圖外框完全同步，達到無縫切換視覺效果
     DrawRectangleLinesEx((Rectangle){mapDestRec.x - 5, mapDestRec.y - 5, mapDestRec.width + 10, mapDestRec.height + 10}, 4.0f, DARKGRAY);
 }
 
@@ -397,18 +368,18 @@ void DrawCompletedMap(const GameState *state)
 // ---------------------------
 void DrawLevel2(const GameState *state)
 {
-    ClearBackground(DARKBLUE);
+    // 💡 注意：由於你在 main.c 裡有做全域/半透明背景切換，這裡改用半透明覆蓋底色，
+    // 以免吃掉 main.c 畫好的背景。如果你 main.c 沒畫這關背景，它也會是穩定的深藍色。
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.2f));
 
-    // 💡 3. 控制隱藏機制：如果正在玩拼圖 (showPuzzle)，直接跳過繪製背景地圖所有物件與提示字
     if (!showPuzzle) 
     {
-        // 渲染 paperPile.png 貼圖
+        // 渲染 paperPile.png 貼圖 (位置已下移)
         Rectangle paperSrcRec = { 0.0f, 0.0f, (float)state->paperPileSprite.width, (float)state->paperPileSprite.height };
         DrawTexturePro(state->paperPileSprite, paperSrcRec, paperPile, (Vector2){0, 0}, 0.0f, WHITE);
 
-        // 💡 2. 將原本的褐色門改為完美渲染 door.png 貼圖
-        Rectangle doorSrcRec = { 0.0f, 0.0f, (float)state->doorSprite.width, (float)state->doorSprite.height };
-        DrawTexturePro(state->doorSprite, doorSrcRec, doorRect, (Vector2){0, 0}, 0.0f, WHITE); 
+        // 💡 2. 移除：門的圖片繪製程式碼 (DrawTexturePro)
+        // 畫面上不再有門的圖片，實現完全隱形
 
         // 玩家
         Rectangle sourceRec = {
@@ -435,17 +406,15 @@ void DrawLevel2(const GameState *state)
         );
     }
 
-    // 💡 如果點開了拼圖，則單獨跑獨立的大視窗渲染
     if (showPuzzle){
         DrawPuzzle(state); 
     }
 
     if (showMap){
-        DrawCompletedMap(state); // 💡 修改：這裡要把 state 傳進去
+        DrawCompletedMap(state); 
     }
 
     if (showDialogue){
         DrawDialogue2(state);
     }
-    
 }

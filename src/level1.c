@@ -36,7 +36,6 @@ static int inputLength = 0;
 
 static int computerFlashCount = 0;
 static float flashTimer = 0;
-// 💡 將初始閃爍顏色改為全透明 WHITE，這樣平常機械主機才不會變暗
 static Color computerFlashColor = WHITE; 
 static Color computerFlashTargetColor = WHITE;
 static bool computerFlashOn = false;
@@ -77,7 +76,7 @@ static const char *initialDialogue[] = {
 
 static const char *paperDialogue[] = {
     "A note!",
-    "After the sound disappears, only light can speak...",
+    "After the sound disappears,\nonly light can speak...",
     "It looks like I should watch the light\nwhen the sound is gone.",
     "What could it mean?\nMaybe it's related to the flashing light in the room?"
 };
@@ -87,9 +86,10 @@ static const char *morseTableDialogue[] = {
     "What is it for?"
 };
 
+// 💡 恢復：門被鎖住的對話內容
 static const char *doorLockedDialogue[] = {
     "I need to get the information first."
-    };
+};
 
 static const char *successDialogue[] = {
     "A string of gibberish...",
@@ -125,6 +125,7 @@ static void FinishDialogue(GameState *state)
             break;
     }
 
+    // 💡 恢復：看完對話後切換畫面的判斷
     if (returnToHubAfterDialogue) {
         returnToHubAfterDialogue = false;
         state->currentScreen = SCREEN_HUB;
@@ -161,7 +162,7 @@ void InitLevel1(void)
     showMorseTable = false;
     showNavigationCommand = false;
     showDialogue = false;
-    returnToHubAfterDialogue = false;
+    returnToHubAfterDialogue = false; // 💡 恢復初始化
     StartDialogue(initialDialogue, sizeof(initialDialogue) / sizeof(initialDialogue[0]), L1_DIALOGUE_START);
 
     inputMode = false;
@@ -171,7 +172,7 @@ void InitLevel1(void)
     morseLightOn = true;
 
     showMorseText = false;
-    computerFlashColor = WHITE; // 預設正常不發光濾鏡
+    computerFlashColor = WHITE; 
     computerFlashTargetColor = WHITE;
     computerFlashCount = 0;
     computerFlashOn = false;
@@ -186,15 +187,21 @@ static void UpdatePlayer()
     if (IsKeyDown(KEY_DOWN)) player.rect.y += PLAYER_SPEED;
     if (IsKeyDown(KEY_LEFT)) player.rect.x -= PLAYER_SPEED;
     if (IsKeyDown(KEY_RIGHT)) player.rect.x += PLAYER_SPEED;
+
+    if (player.rect.x < 0) player.rect.x = 0;
+    if (player.rect.y < 0) player.rect.y = 0;
+    if (player.rect.x > GetScreenWidth() - player.rect.width) player.rect.x = (float)GetScreenWidth() - player.rect.width;
+    if (player.rect.y > GetScreenHeight() - player.rect.height) player.rect.y = (float)GetScreenHeight() - player.rect.height;
 }
 
 static void HandleInteraction(GameState *state)
 {
-    // 💡 調整判定盒大小，與新圖片尺寸完全對齊
-    Rectangle paperRect = {580, 380, 80, 80};      // letter 放大到 80x80
-    Rectangle morseRect = {850, 600, 100, 120};     // book.png 100x120
-    Rectangle computerRect = {100, 350, 100, 120};  // device01.png 100x120
-    Rectangle doorRect = {1150, 375, 100, 200};     // door.png 100x200 寬高
+    Rectangle paperRect = {530, 360, 150, 100};      
+    Rectangle morseRect = {850, 650, 200, 100};       
+    // 💡 3. 左邊裝置往右移一點，同步更新物理碰撞判定盒 (X 從 120 改為 180)
+    Rectangle computerRect = {180, 350, 120, 140};  
+    // 💡 恢復：門的隱形判定區域（坐標與原本位置一致）
+    Rectangle doorRect = {1080, 375, 200, 200};     
 
     if (CheckCollisionRecs(player.rect, paperRect) && !gotPaper) {
         showPaperText = true;
@@ -224,6 +231,7 @@ static void HandleInteraction(GameState *state)
         ClearPendingTextInput();
     }
 
+    // 💡 恢復：走到隱形門的區域按 Z，觸發被鎖住的對話
     if (CheckCollisionRecs(player.rect, doorRect)) {
         StartDialogue(doorLockedDialogue, sizeof(doorLockedDialogue) / sizeof(doorLockedDialogue[0]), L1_DIALOGUE_START);
         returnToHubAfterDialogue = false;
@@ -254,10 +262,9 @@ static void HandleInputBox(GameState *state)
 
     if (IsKeyPressed(KEY_ENTER)) { 
         if (strcmp(inputBuffer, "URLD") == 0 || strcmp(inputBuffer, "urld") == 0) {
-            // 💡 密碼正確：開啟綠色濾鏡閃爍
             computerFlashTargetColor = Fade(GREEN, 0.6f); 
             computerFlashColor = computerFlashTargetColor;
-            computerFlashCount = 3; // 閃三次
+            computerFlashCount = 3; 
             computerFlashOn = true;
             flashTimer = 0;
 
@@ -267,12 +274,11 @@ static void HandleInputBox(GameState *state)
             }
             showNavigationCommand = true;
             StartDialogue(successDialogue, sizeof(successDialogue) / sizeof(successDialogue[0]), L1_DIALOGUE_SUCCESS);
-            returnToHubAfterDialogue = true;
+            returnToHubAfterDialogue = true; // 💡 恢復
             
             state->isLevel1Cleared = true;
             strcpy(state->secretSequence, "URLD");
         } else {
-            // 💡 密碼錯誤：開啟紅色濾鏡閃爍
             computerFlashTargetColor = Fade(RED, 0.6f); 
             computerFlashColor = computerFlashTargetColor;
             computerFlashCount = 3;
@@ -311,11 +317,11 @@ static void UpdateComputerFlash()
         flashTimer = 0;
 
         if (computerFlashOn) {
-            computerFlashColor = WHITE; // 閃爍暗掉時，恢復原圖真實色彩 (WHITE)
+            computerFlashColor = WHITE; 
             computerFlashOn = false;
             computerFlashCount--;
         } else if (computerFlashCount > 0) {
-            computerFlashColor = computerFlashTargetColor; // 亮起對應顏色
+            computerFlashColor = computerFlashTargetColor; 
             computerFlashOn = true;
         }
     }
@@ -366,14 +372,14 @@ void UpdateLevel1(GameState *state)
 
 void DrawPaperText(void)
 {
-    DrawRectangle(240, 250, 800, 200, LIGHTGRAY);
+    DrawRectangle(240, 250, 800, 200, Fade(LIGHTGRAY, 0.95f));
+    DrawRectangleLines(240, 250, 800, 200, DARKGRAY);
     DrawText("After the sound disappears,\nonly light can speak.", 340, 330, 30, BLACK);
 }
 
-// 💡 點開摩斯表後，完美渲染正方形的 code.png
 void DrawMorseTable(const GameState *state)
 {
-    int boxSize = 460; // 正方形大小
+    int boxSize = 460; 
     int startX = (GetScreenWidth() - boxSize) / 2;
     int startY = (GetScreenHeight() - boxSize) / 2 - 40;
 
@@ -386,7 +392,8 @@ void DrawMorseTable(const GameState *state)
 
 void DrawNavigationCommand(void)
 {
-    DrawRectangle(240, 170, 800, 470, LIGHTGRAY);
+    DrawRectangle(240, 170, 800, 470, Fade(LIGHTGRAY, 0.95f));
+    DrawRectangleLines(240, 170, 800, 470, DARKGRAY);
     DrawText("Navigation Command", 310, 220, 30, BLACK);
     DrawText("UUUU RRR D\nUU RR DDDD LLL D", 310, 310, 35, BLACK);
     DrawText("U R L D", 310, 500, 50, BLACK);
@@ -395,7 +402,7 @@ void DrawNavigationCommand(void)
 
 void DrawDialogue1(const GameState *state)
 {
-    DrawRectangle(150, 700, 980, 180, BLACK);
+    DrawRectangle(150, 700, 980, 180, Fade(BLACK, 0.85f)); 
     DrawRectangleLines(150, 700, 980, 180, WHITE);
 
     if (dialogueLines != NULL && dialogueIndex < dialogueCount) {
@@ -406,55 +413,57 @@ void DrawDialogue1(const GameState *state)
 
 void DrawLevel1(const GameState *state)
 {
-    // 💡 1. 繪製門 (由 doorRect 放大至 100x200)
-    Rectangle doorDest = { 1080, 375, 200, 200 };
-    Rectangle doorSrc = { 0.0f, 0.0f, (float)state->doorSprite.width, (float)state->doorSprite.height };
-    DrawTexturePro(state->doorSprite, doorSrc, doorDest, (Vector2){0, 0}, 0.0f, WHITE);
-
-    // 💡 2. 繪製中間放大的信件紙張 letter.png (原本 40x40 放大至 80x80)
+    // 1. 繪製信件紙張 letter.png
     if (!gotPaper) {
-        Rectangle paperDest = { 580, 380, 150, 100 };
+        Rectangle paperDest = { 530, 360, 150, 100 };
         Rectangle paperSrc = { 0.0f, 0.0f, (float)state->letterSprite.width, (float)state->letterSprite.height };
         DrawTexturePro(state->letterSprite, paperSrc, paperDest, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // 摩斯光點
-    if (morseLightOn) DrawCircle(640, 700, 20, WHITE); 
+    // 💡 1. 閃爍的燈 (只有在沒有任何大視窗彈出時才繪製，保持視覺乾淨)
+    if (morseLightOn) {
+        DrawCircle(850, 205, 12, WHITE); 
+    }
 
-    // 💡 3. 繪製右下角摩斯書本 book.png (100x120)
+    // 2. 繪製摩斯書本 book.png
     if (!gotMorseTable) {
-        Rectangle bookDest = { 850, 600, 200, 90 };
+        Rectangle bookDest = { 850, 650, 200, 100 };
         Rectangle bookSrc = { 0.0f, 0.0f, (float)state->bookSprite.width, (float)state->bookSprite.height };
         DrawTexturePro(state->bookSprite, bookSrc, bookDest, (Vector2){0, 0}, 0.0f, WHITE);
     }
 
-    // 💡 4. 繪製通訊控制台機器 device01.png 並綁定紅綠發光濾鏡 (Tint)
-    Rectangle compDest = { 100, 350, 120, 140 };
+    // 3. 繪製控制台機器 device01.png
+    Rectangle compDest = { 180, 350, 120, 140 };
     Rectangle compSrc = { 0.0f, 0.0f, (float)state->deviceSprite.width, (float)state->deviceSprite.height };
-    // 關鍵所在：將原本純白改成 computerFlashColor，達到半透明顏色閃爍效果！
     DrawTexturePro(state->deviceSprite, compSrc, compDest, (Vector2){0, 0}, 0.0f, computerFlashColor); 
     
-    // 玩家繪製
+    // 4. 玩家繪製
     Rectangle playerSrc = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
     DrawTexturePro(state->playerSprite, playerSrc, player.rect, (Vector2){0, 0}, 0.0f, WHITE);
 
+    // ---- 💡 摩斯密碼文字（長短線段）隱藏邏輯調整 ----
+    // 加上額外判斷條件：!showPaperText && !showMorseTable && !showNavigationCommand
+    if (showMorseText && !showPaperText && !showMorseTable && !showNavigationCommand) {
+        DrawText(".._   ._.   ._..   _..", 400, 265, 30, WHITE); 
+    }
+
+    // ---- 介面與文字疊加層 ----
     if (showPaperText) {
         DrawPaperText();
     }
     if (showMorseTable) {
-        DrawMorseTable(state); // 💡 傳入 state 繪製 code.png
+        DrawMorseTable(state); 
     }
     if (showNavigationCommand) {
         DrawNavigationCommand();
     }
-    if (showMorseText) {
-        DrawText(".._   ._.   ._..   _..", 350, 50, 30, WHITE); 
-    }
+    
     if (showDialogue){
         DrawDialogue1(state);
     }
     if (inputMode) {
-        DrawRectangle(300, 800, 600, 80, WHITE);
+        DrawRectangle(300, 800, 600, 80, Fade(WHITE, 0.9f));
+        DrawRectangleLines(300, 800, 600, 80, DARKGRAY);
         DrawText(inputBuffer, 330, 820, 30, BLACK);
     }
 }

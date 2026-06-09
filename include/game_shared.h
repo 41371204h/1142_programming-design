@@ -30,7 +30,7 @@ typedef struct {
     bool isLevel1Cleared;
     bool isLevel2Cleared;
     bool isLevel3Cleared;
-    char secretSequence[5];
+    char secretSequence[20];
     
     // Globally shared inventory variable
     Inventory inventory; 
@@ -40,6 +40,8 @@ typedef struct {
     Texture2D wallSprite;
     Texture2D wallToolSprite;
     Texture2D wallDeviceSprite;
+    Texture2D handleDetailSprite; // 存放 assets/handle.png
+    Texture2D device02Sprite;     // 存放 assets/device02.png
     Texture2D keySprite;
     Texture2D paperPileSprite;      
     Texture2D puzzleParts[9];

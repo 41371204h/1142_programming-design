@@ -61,7 +61,7 @@ int main(void) {
     /*
     state.isLevel1Cleared = true;
     state.isLevel2Cleared = true;
-    strcpy(state.secretSequence, "URLD"); /// for testing lv3, will be deleted after testing
+    strcpy(state.secretSequence, "UUUURRRDURRDDDDLLLD"); /// for testing lv3, will be deleted after testing
     */
 
     // 載入全域共用的玩家 Q 版人物貼圖 (必須在 InitWindow 之後)

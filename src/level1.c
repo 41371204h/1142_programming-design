@@ -275,7 +275,7 @@ static void HandleInputBox(GameState *state)
             returnToHubAfterDialogue = true; 
             
             state->isLevel1Cleared = true;
-            strcpy(state->secretSequence, "URLD");
+            strcpy(state->secretSequence, "UUUURRRDUURRDDDDLLLD");
             play_effect_win();
         } else {
             computerFlashTargetColor = Fade(RED, 0.6f); 

@@ -1,9 +1,8 @@
-// TODO: add a rectangle that shows the player gets the key after entering the right answer
-
 #include "raylib.h"
 #include "game_shared.h"
 #include "level3.h"
 #include "audio.h"
+#include <SDL2/SDL_mixer.h>
 #include <string.h>
 
 // --- 關卡設定 ---
@@ -37,7 +36,7 @@ static int playerY = 6;      // 讓玩家出生在左下角
 static float timeLeft = 60.0f; ///
 static bool hasHandle = false; 
 static bool showLockUI = false; 
-static char inputBuffer[5] = ""; 
+static char inputBuffer[20] = ""; 
 static int inputIndex = 0;
 
 // 控制「獲得道具」視窗是否顯示的開關
@@ -93,6 +92,13 @@ void UpdateLevel3(GameState *state) {
 
     switch (currentState) {
         case L3_STORY:
+            // 💡 1. 核心優化：只要一進來 L3_STORY 狀態（畫面一跳出來、Warning還在時）
+            // 只要警報還沒響，就利用一個小計時器或是每影偵測讓它持續響起
+            // 為了防止每一影都重複呼叫疊音，我們可以利用 timeLeft 剛好是 60 秒的時機點來做「只播放一次」的觸發：
+            if (timeLeft == 60.0f && !showLockUI) {
+                play_effect_alarm(); 
+            }
+
             // 等待玩家按下空白鍵開始遊戲
             if (IsKeyPressed(KEY_SPACE)) {
                 currentState = L3_PLAYING;
@@ -146,13 +152,13 @@ void UpdateLevel3(GameState *state) {
 
             // 2. 密碼輸入邏輯
             if (showLockUI) {
-                if (IsKeyPressed(KEY_UP) && inputIndex < 4) inputBuffer[inputIndex++] = 'U';
-                if (IsKeyPressed(KEY_DOWN) && inputIndex < 4) inputBuffer[inputIndex++] = 'D';
-                if (IsKeyPressed(KEY_LEFT) && inputIndex < 4) inputBuffer[inputIndex++] = 'L';
-                if (IsKeyPressed(KEY_RIGHT) && inputIndex < 4) inputBuffer[inputIndex++] = 'R';
+                if (IsKeyPressed(KEY_UP) && inputIndex < 19) inputBuffer[inputIndex++] = 'U';
+                if (IsKeyPressed(KEY_DOWN) && inputIndex < 19) inputBuffer[inputIndex++] = 'D';
+                if (IsKeyPressed(KEY_LEFT) && inputIndex < 19) inputBuffer[inputIndex++] = 'L';
+                if (IsKeyPressed(KEY_RIGHT) && inputIndex < 19) inputBuffer[inputIndex++] = 'R';
 
-                if (inputIndex == 4) {
-                    inputBuffer[4] = '\0';
+                if (inputIndex == 19) {
+                    inputBuffer[19] = '\0';
                     if (strcmp(inputBuffer, state->secretSequence) == 0) {
                         // 密碼正確！過關
                         showLockUI = false;   // 關閉密碼鎖的 UI
@@ -226,7 +232,7 @@ void DrawLevel3(const GameState *state) {
             
             DrawTextEx(state->storyFont, TextSubtext(typeText, 0, charsToShow),
                        (Vector2){GetScreenWidth()/2.0f - 580, GetScreenHeight()/2.0f - 80}, 
-                       50, 2, WHITE);
+                       54, 2, WHITE);
             
             DrawText("[ Press X to Continue ]", GetScreenWidth()/2 - 130, GetScreenHeight() - 100, 20, DARKGRAY);
 
@@ -282,7 +288,7 @@ void DrawLevel3(const GameState *state) {
         (float)(MAZE_COLS * TILE_SIZE), 
         (float)(MAZE_ROWS * TILE_SIZE) 
     };
-    DrawRectangleLinesEx(mazeOuterBounds, 4.0f, WHITE);
+    DrawRectangleLinesEx(mazeOuterBounds, 4.0f, BROWN);
 
     // 繪製玩家
     Rectangle pSourceRec = { 0.0f, 0.0f, (float)state->playerSprite.width, (float)state->playerSprite.height };
@@ -297,10 +303,10 @@ void DrawLevel3(const GameState *state) {
     // --- 繪製密碼輸入介面 ---
     if (showLockUI) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f));
-        DrawText("Core Device Activate Program", GetScreenWidth()/2 - 260, 200, 40, WHITE);
-        DrawText("Enter (U/D/L/R) using arrow keys", GetScreenWidth()/2 - 260, 280, 20, LIGHTGRAY);
-        DrawText(TextFormat("Current input: %s", inputBuffer), GetScreenWidth()/2 - 200, 350, 40, YELLOW);
-        DrawText("Automatically cleared if wrong", GetScreenWidth()/2 - 260, 450, 20, GRAY);
+        DrawText("Core Device Activate Program", GetScreenWidth()/2 - 400, 200, 40, WHITE);
+        DrawText("Enter the correct path to the maze (U/D/L/R)\nusing arrow keys", GetScreenWidth()/2 - 400, 280, 28, LIGHTGRAY);
+        DrawText(TextFormat("Current input: %s", inputBuffer), GetScreenWidth()/2 - 400, 380, 40, YELLOW);
+        DrawText("[Automatically cleared if wrong]", GetScreenWidth()/2 - 400, 470, 20, GRAY);
     }
 
     // --- 繪製故事開場白 (疊在最上層) ---

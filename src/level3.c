@@ -157,13 +157,13 @@ void UpdateLevel3(GameState *state) {
 
             // 2. 密碼輸入邏輯
             if (showLockUI) {
-                if (IsKeyPressed(KEY_UP) && inputIndex < 19) inputBuffer[inputIndex++] = 'U';
-                if (IsKeyPressed(KEY_DOWN) && inputIndex < 19) inputBuffer[inputIndex++] = 'D';
-                if (IsKeyPressed(KEY_LEFT) && inputIndex < 19) inputBuffer[inputIndex++] = 'L';
-                if (IsKeyPressed(KEY_RIGHT) && inputIndex < 19) inputBuffer[inputIndex++] = 'R';
+                if (IsKeyPressed(KEY_UP) && inputIndex < 20) inputBuffer[inputIndex++] = 'U';
+                if (IsKeyPressed(KEY_DOWN) && inputIndex < 20) inputBuffer[inputIndex++] = 'D';
+                if (IsKeyPressed(KEY_LEFT) && inputIndex < 20) inputBuffer[inputIndex++] = 'L';
+                if (IsKeyPressed(KEY_RIGHT) && inputIndex < 20) inputBuffer[inputIndex++] = 'R';
 
-                if (inputIndex == 19) {
-                    inputBuffer[19] = '\0';
+                if (inputIndex == 20) {
+                    inputBuffer[20] = '\0';
                     if (strcmp(inputBuffer, state->secretSequence) == 0) {
                         // 密碼正確！過關
                         showLockUI = false;   // 關閉密碼鎖的 UI

@@ -30,7 +30,7 @@ typedef struct {
     bool isLevel1Cleared;
     bool isLevel2Cleared;
     bool isLevel3Cleared;
-    char secretSequence[20];
+    char secretSequence[25];
     
     // Globally shared inventory variable
     Inventory inventory; 

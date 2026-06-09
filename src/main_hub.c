@@ -46,7 +46,7 @@ void AddItem(GameState *state, const char *itemName) {
 
 int main(void) {
     // 1. Initializing the game window (res: 1280x960)
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Puzzle Game"); 
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Zero Depth"); 
     SetTargetFPS(60);
 
     // 初始化 SDL_mixer 音訊，並自動無限循環播放 bgm0.mp3

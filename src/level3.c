@@ -335,7 +335,7 @@ void DrawLevel3(const GameState *state) {
     if (showLockUI) {
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.8f));
         DrawText("Core Device Activate Program", GetScreenWidth()/2 - 400, 200, 40, WHITE);
-        DrawText("Enter the correct path to the maze (U/D/L/R)\nusing arrow keys", GetScreenWidth()/2 - 400, 280, 28, LIGHTGRAY);
+        DrawText("Enter the SHORTEST path to complete the maze (U/D/L/R)\nusing arrow keys", GetScreenWidth()/2 - 400, 280, 28, LIGHTGRAY);
         DrawText(TextFormat("Current input: %s", inputBuffer), GetScreenWidth()/2 - 400, 380, 40, YELLOW);
         DrawText("[Automatically cleared if wrong]", GetScreenWidth()/2 - 400, 470, 20, GRAY);
     }

@@ -213,9 +213,9 @@ int main(void) {
                 break;
             case SCREEN_ENDING:
                 if (showEndingStory) {
-                    const char *endingText = "Permission granted\nThe central escape pod activa%]K:(...";
+                    const char *endingText = "Permission granted\nThe central escape pod activate.";
                     int charsToShow = (int)(endingTimer * 15.0f); 
-                    DrawTextEx(state.storyFont, TextSubtext(endingText, 0, charsToShow), (Vector2){180, 400}, 56, 2, WHITE);
+                    DrawTextEx(state.storyFont, TextSubtext(endingText, 0, charsToShow), (Vector2){200, 400}, 56, 2, WHITE);
                     DrawText("[ Press X to Continue ]", SCREEN_WIDTH / 2 - 130, SCREEN_HEIGHT - 100, 20, LIGHTGRAY);
                 } else {
                     DrawText("The end", SCREEN_WIDTH / 2 - 170, SCREEN_HEIGHT / 2 - 40, 80, WHITE);

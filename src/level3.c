@@ -157,6 +157,10 @@ void UpdateLevel3(GameState *state) {
 
             // 2. 密碼輸入邏輯
             if (showLockUI) {
+                if (IsKeyPressed(KEY_BACKSPACE) && inputIndex > 0) {
+                    inputIndex--;
+                    inputBuffer[inputIndex] = '\0';
+                }
                 if (IsKeyPressed(KEY_UP) && inputIndex < 20) inputBuffer[inputIndex++] = 'U';
                 if (IsKeyPressed(KEY_DOWN) && inputIndex < 20) inputBuffer[inputIndex++] = 'D';
                 if (IsKeyPressed(KEY_LEFT) && inputIndex < 20) inputBuffer[inputIndex++] = 'L';
@@ -337,7 +341,7 @@ void DrawLevel3(const GameState *state) {
         DrawText("Core Device Activate Program", GetScreenWidth()/2 - 400, 200, 40, WHITE);
         DrawText("Enter the SHORTEST path to complete the maze (U/D/L/R)\nusing arrow keys", GetScreenWidth()/2 - 400, 280, 28, LIGHTGRAY);
         DrawText(TextFormat("Current input: %s", inputBuffer), GetScreenWidth()/2 - 400, 380, 40, YELLOW);
-        DrawText("[Automatically cleared if wrong]", GetScreenWidth()/2 - 400, 470, 20, GRAY);
+        DrawText("[ Press BACKSPACE to delete | Auto-cleared if 20 chars are wrong ]", GetScreenWidth()/2 - 400, 470, 20, GRAY);
     }
 
     // --- 繪製故事開場白 (疊在最上層) ---

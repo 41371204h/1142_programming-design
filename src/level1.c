@@ -1,5 +1,3 @@
-// TODO: add a rectangle that shows the player gets the key after entering the right answer
-
 #include "raylib.h"
 #include "level1.h"
 #include "game_shared.h"

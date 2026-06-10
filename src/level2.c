@@ -65,8 +65,8 @@ static int dialogueIndex = 0;
 static L2DialogueMode dialogueMode = L2_DIALOGUE_NONE;
 
 static const char *enterDialogue[] = {
-    "Strange...\nI can't remember the internal structure of\nthe escape zone.",
-    "This won't do,\nI'll have to go to the archives to look for it."
+    "Strange...\nI can't even remember the internal structure\nof the escape zone.",
+    "This won't do,\nI'll have to look for it."
 };
 
 static const char *puzzleOpenDialogue[] = {
@@ -75,7 +75,7 @@ static const char *puzzleOpenDialogue[] = {
 };
 
 static const char *levelCompleteDialogue[] = {
-    "That's it!\nIt must be the map of the escape zone!",
+    "That's it!\nIt is  the map of the escape zone!",
     "I need to hurry up before the air runs out."
 };
 

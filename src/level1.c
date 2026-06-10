@@ -65,10 +65,9 @@ static int dialogueCount = 0;
 static L1DialogueMode dialogueMode = L1_DIALOGUE_START;
 
 static const char *initialDialogue[] = {
-    "Anyway, I need to figure out the situation first.",
-    "Maybe there are some messages left by others\nin the communications record room.",
-    "...Wait.\nWhy is this place such a mess?",
-    "Oh god, those data have all been destroyed!",
+    "Okay, I need to fix the signal first.",
+    "And maybe I can find some messages left by others.",
+    "Oh god, those data are such a mess!",
     "And the voice recording cannot be played back either...\nWhat should I do now?",
     "(Press Z to interact with objects.\nPress X to cancel.\nPress C to open inventory.)"
 };

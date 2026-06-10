@@ -203,7 +203,6 @@ static void HandleInteraction(GameState *state)
     // 💡 物品欄碰撞設定
     Rectangle fakeKeyRect = { 80, 600, 50, 50 };
     Rectangle fakeComp1Rect = { 350, 655, 270, 180 }; 
-    // 💡 假電腦移到更左邊的碰撞區域同步修正（X 從 700 改為 630）
     Rectangle fakeComp2Rect = { 630, 310, 150, 150 }; 
 
     if (CheckCollisionRecs(player.rect, fakeKeyRect)) {
@@ -351,14 +350,16 @@ static void UpdateComputerFlash()
 
 void UpdateLevel1(GameState *state)
 {
+    // 💡 核心優化：無論如何，時間軸與閃爍更新都不該被中斷
     gameTimer += GetFrameTime();
+    UpdateMorseFlash();
+    UpdateComputerFlash();
 
+    // 💡 閃爍邏輯更新完後，再執行物品欄的阻斷
     if (state->inventory.opened) return;
 
     if (showDialogue) { 
         AdvanceDialogue(state);
-        UpdateMorseFlash();
-        UpdateComputerFlash();
         return;
     }
 
@@ -388,9 +389,6 @@ void UpdateLevel1(GameState *state)
     
     if (inputMode && !startInput) HandleInputBox(state);
     if (gameTimer >= 60.0f) showMorseText = true;
-
-    UpdateMorseFlash();
-    UpdateComputerFlash();
 }
 
 void DrawPaperText(void)
@@ -444,7 +442,7 @@ void DrawLevel1(const GameState *state)
         DrawTexturePro(state->letterSprite, paperSrc, paperDest, (Vector2){0, 0}, 0.0f, Fade(WHITE, 0.85f));
     }
 
-    // 💡 摩斯訊號燈（還原乾淨圓點）
+    // 💡 摩斯訊號燈（還原乾淨圓點，且不受物品欄干擾、從頭到尾都會閃）
     if (morseLightOn) {
         DrawCircle(850, 205, 12, WHITE); 
     }
@@ -460,7 +458,6 @@ void DrawLevel1(const GameState *state)
     DrawEllipse(105, 640, 25, 8, Fade(BLACK, 0.35f)); 
     Rectangle keyDest = { 80, 600, 50, 50 };
     Rectangle keySrc = { 0.0f, 0.0f, (float)state->keySprite.width, (float)state->keySprite.height };
-    // 💡 核心修改：將鑰匙透明度調低至 0.55f（搭配暗色底，讓它低調地藏在左下角環境中）
     DrawTexturePro(state->keySprite, keySrc, keyDest, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.55f)); 
 
     // 💡 誤導物 A (computer.png)
@@ -470,9 +467,7 @@ void DrawLevel1(const GameState *state)
     DrawTexturePro(state->hubTerminalSprite, fakeComp1Src, fakeComp1Dest, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.65f));
     
     // 💡 誤導物 B：假電腦 (device02.png) 往左側平移
-    // 💡 落地陰影同步往左移 (X 從 775 修改為 705)
     DrawEllipse(705, 458, 55, 14, Fade(BLACK, 0.40f)); 
-    // 💡 繪製位置水平左移 (X 從 720 修改為 650)
     Rectangle fakeComp2Dest = { 650, 330, 110, 130 };
     Rectangle compSrc2 = { 0.0f, 0.0f, (float)state->device02Sprite.width, (float)state->device02Sprite.height };
     DrawTexturePro(state->device02Sprite, compSrc2, fakeComp2Dest, (Vector2){0, 0}, 0.0f, Fade(GRAY, 0.55f));

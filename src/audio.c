@@ -69,10 +69,8 @@ void play_bgm(int level) {
             return; 
         }
 
-        // 💡 1.5 秒的淡入淡出時間最適合遊戲轉場
         int fade_time_ms = 1500; 
 
-        // 💡 終極修正：不要同時呼叫 FadeOut 和 FadeIn！
         // 直接對當前播放的音樂軌道下達強制的 Mix_HaltMusic() 截斷命令清空通道，
         // 這樣可以 100% 確保新音樂（特別是最後的 bgm4）在淡入時不會被前一首殘留的緩衝區卡死。
         if (Mix_PlayingMusic()) {

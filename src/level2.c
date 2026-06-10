@@ -52,7 +52,7 @@ static int cursorX = 0;
 static int cursorY = 0;
 
 // ---------------------------
-// 对话
+// 對話
 // ---------------------------
 typedef enum {
     L2_DIALOGUE_NONE,
@@ -120,7 +120,7 @@ static void AdvanceDialogue(GameState *state)
 }
 
 // ---------------------------
-// 初始化拼图
+// 初始化拼圖
 // ---------------------------
 void InitPuzzle(void)
 {
@@ -137,7 +137,7 @@ void InitPuzzle(void)
 }
 
 // ---------------------------
-// 判断拼图完成
+// 判斷拼圖完成
 // ---------------------------
 bool IsPuzzleSolved(void)
 {
@@ -407,7 +407,7 @@ void DrawCompletedMap(const GameState *state)
 }
 
 // ---------------------------
-// 绘制 Level2
+// 繪製 Level2
 // ---------------------------
 void DrawLevel2(const GameState *state)
 {

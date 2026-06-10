@@ -14,7 +14,11 @@ A narrative-driven **mystery puzzle game** built from scratch using the `raylib`
 We have included a convenient shell script (`build.sh`) that automates the GCC compilation and linking process for raylib.
 
 ### Prerequisites
-Make sure you have the **GNU C Compiler (GCC)** and **raylib** installed on your system.
+Make sure you have the **GNU C Compiler (GCC)**, **raylib** and **SDL2/SDL.h and SDL2/SDL_mixer.h**installed on your system.
+#### SDL2/SDL
+```bash
+sudo apt update && sudo apt install libsdl2-dev libsdl2-mixer-dev -y
+```
 
 ### Steps
 1. Clone the repository and navigate into the folder:
@@ -22,7 +26,6 @@ Make sure you have the **GNU C Compiler (GCC)** and **raylib** installed on your
    git clone https://github.com/41371204h/1142_programming-design
    cd 1142_programming-design
    ```
-
 2. Give execution permission to the script (if needed):
    ```bash
    chmod +x build.sh

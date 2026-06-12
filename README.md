@@ -31,7 +31,20 @@ We have included a convenient shell script (`build.sh`) that automates the GCC c
 * Make sure you have the **GNU C Compiler (GCC)**, **raylib** and the **development package for SDL2/SDL_mixer** installed on your system.
 
 #### Install Raylib on Ubuntu
-[Working on GNU Linux](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux)
+Complete Manual: [Working on GNU Linux](https://github.com/raysan5/raylib/wiki/Working-on-GNU-Linux)
+
+Installation
+```bash
+sudo apt install libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+```
+Build Raylib using make
+```bash
+git clone --depth 1 https://github.com/raysan5/raylib.git raylib
+cd raylib/src/
+make PLATFORM=PLATFORM_DESKTOP # To make the static version.
+make PLATFORM=PLATFORM_DESKTOP RAYLIB_LIBTYPE=SHARED # To make the dynamic shared version.
+```
+
 #### Installing SDL2/SDL
 ```bash
 sudo apt update && sudo apt install libsdl2-dev libsdl2-mixer-dev -y
